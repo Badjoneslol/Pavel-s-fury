@@ -777,7 +777,7 @@ function mkEnemy(type,p,ML){const df=DIF(),B=BIO(),L=ML||S.lvl,lv=1+0.25*(L-1),d
     col:B[type]||'#ffffff',pal:B.boss};}
 function killEnemy(e){e.dead=true;SND.die(e.type);addFx({type:'corpse',e:Object.assign({},e,{hit:0}),t:0,life:.55});if(e.type==='prop'){breakProp(e);return;}const df=DIF();netXp(e.xp);questKill(e.type);if(NET.host)NET.send({t:'kill',type:e.type});sparks(e.x,e.y-10,e.type==='boss'?e.pal.eye:'#fff',e.type==='boss'?40:12);
   const il=S.lvl+S.diff,sc=(x,y)=>({x:x+rand(-18,18),y:y+rand(-14,14)}),gm=df.gold*(1+0.1*S.lvl);
-  if(e.type==='boss'){G.bossDead=true;G.winT=2.2;G.shake=12;
+  if(e.type==='boss'){G.bossDead=true;G.winT=0;G.shake=12;openWinPortal(e);
     G.loot.push({kind:'item',item:genItem(il+1,3),...sc(e.x,e.y),t:0});
     for(let i=0;i<3;i++)G.loot.push({kind:'item',item:genItem(il+1,rollRar(0.6+df.boost)),...sc(e.x,e.y),t:0});
     G.loot.push({kind:'gold',n:Math.round((80+randi(0,40))*gm),...sc(e.x,e.y),t:0});return;}
@@ -1121,13 +1121,13 @@ function drawPortal(c,n,t){c.save();c.translate(n.x,n.y);
   c.strokeStyle='rgba(255,232,195,.75)';c.lineWidth=1.6;for(let i=0;i<3;i++){c.beginPath();c.ellipse(0,-17,7+i*5,11+i*6,0,t*2+i*2,t*2+i*2+3.6);c.stroke();}
   c.font="800 11px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText('Portail',0,-60);c.fillStyle='#ffb15a';c.fillText('Portail',0,-60);
   c.restore();}
-function drawNpc(c,n,t){if(n.id==='portal'){drawPortal(c,n,t);return;}if(n.id==='worldgate')drawWorldGate(c,n,t);if(['wgate','cave','worldgate'].includes(n.id)){c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';const ly=n.y-(n.id==='cave'?62:n.id==='worldgate'?62:40);c.strokeText(n.short,n.x,ly);c.fillStyle=n.id==='cave'?({glace:'#9fe0ff',foret:'#9be36a',donjon:'#ff8a5a'}[n.zone]):'#ffd84a';c.fillText(n.short,n.x,ly);return;}if(n.id==='rportal'){drawRPortal(c,n,t);return;}if(n.id==='door'||n.id==='exit')return;
+function drawNpc(c,n,t){if(n.id==='portal'){drawPortal(c,n,t);return;}if(n.id==='winportal'){drawWinPortal(c,n,t);return;}if(n.id==='worldgate')drawWorldGate(c,n,t);if(['wgate','cave','worldgate'].includes(n.id)){c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';const ly=n.y-(n.id==='cave'?62:n.id==='worldgate'?62:40);c.strokeText(n.short,n.x,ly);c.fillStyle=n.id==='cave'?({glace:'#9fe0ff',foret:'#9be36a',donjon:'#ff8a5a'}[n.zone]):'#ffd84a';c.fillText(n.short,n.x,ly);return;}if(n.id==='rportal'){drawRPortal(c,n,t);return;}if(n.id==='door'||n.id==='exit')return;
   drawHero(c,n.x,n.y+6,0.95,n.look,n.eq,'down',t+n.ph,false,0);
   if(SHADOWS)drawNpcLabel(c,n,t);}
 function drawNpcLabel(c,n,t){c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(n.short,n.x,n.y-40);c.fillStyle=n.id==='quest'?'#f6e2c4':'#ffd84a';c.fillText(n.short,n.x,n.y-40);if(n.id==='quest')drawQMark(c,n,t);}
-function townNear(){if(!G||!(G.town||G.home||G.world)||G.P.dead)return null;let best=null,bd=46;for(const n of G.npcs){const d=Math.hypot(n.x-G.P.x,n.y-G.P.y);if(d<bd){bd=d;best=n;}}return best;}
+function townNear(){if(!G||!G.npcs||!G.npcs.length||G.P.dead)return null;let best=null,bd=46;for(const n of G.npcs){const d=Math.hypot(n.x-G.P.x,n.y-G.P.y);if(d<bd){bd=d;best=n;}}return best;}
 function townHud(){questTrack();$('tpBtn').hidden=!!(G.town||G.home)||G.P.dead||!!G.client;$('mpBadge').hidden=!(NET.host||NET.guest);if(NET.host||NET.guest)$('mpBadge').textContent=(NET.host?(NET.P2?'2 joueurs · ':'En attente · '):'Invité · ')+NET.code;const cb=$('castBar');cb.hidden=!G.tpCast;if(G.tpCast)$('castFill').style.width=Math.min(100,G.tpCast.t/G.tpCast.dur*100)+'%';const hb=$('horseBtn');hb.hidden=!(G.town||G.world);$('mapBtn').hidden=false;if(!(G.town||G.world)&&G.P.horse)G.P.horse=false;const hl=G.P.horse?'Descendre':'Cheval';if(hb.textContent!==hl)hb.textContent=hl;G.near=townNear();const tb=$('talkBtn');tb.hidden=!G.near||paused;if(G.near){const l=G.near.id==='portal'?'Entrer dans le portail':(G.near.talk||'Parler à '+G.near.short);if(tb.textContent!==l)tb.textContent=l;}}
-function interact(n){if(!n||paused)return;if(G.client&&['portal','rportal','door','exit','wgate','cave','worldgate'].includes(n.id)){toast("C'est l'hôte qui ouvre les portails et les portes",'#7fc6ff');return;}if(n.id==='portal'){openExped();return;}if(n.id==='worldgate'){goWorld();return;}if(n.id==='wgate'){const hp=G.P.hp;goTown();G.P.x=14*TS;G.P.y=20.2*TS;G.P.hp=Math.min(hp,stats().hp);G.P.dir='up';return;}if(n.id==='cave'){enterCave(n);return;}if(n.id==='quest'){talkQuest(n);return;}if(n.id==='rportal'){backToDungeon();return;}if(n.id==='door'){enterHome();return;}if(n.id==='exit'){leaveHome();return;}openShop(n.id);}
+function interact(n){if(!n||paused)return;if(G.client&&['portal','rportal','door','exit','wgate','cave','worldgate','winportal'].includes(n.id)){toast("C'est l'hôte qui ouvre les portails et les portes",'#7fc6ff');return;}if(n.id==='portal'){openExped();return;}if(n.id==='worldgate'){goWorld();return;}if(n.id==='wgate'){const hp=G.P.hp;goTown();G.P.x=14*TS;G.P.y=20.2*TS;G.P.hp=Math.min(hp,stats().hp);G.P.dir='up';return;}if(n.id==='cave'){enterCave(n);return;}if(n.id==='winportal'){winReturn();return;}if(n.id==='quest'){talkQuest(n);return;}if(n.id==='rportal'){backToDungeon();return;}if(n.id==='door'){enterHome();return;}if(n.id==='exit'){leaveHome();return;}openShop(n.id);}
 $('talkBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G)interact(G.near);});
 $('exBack').onclick=()=>{if(G&&G.town){show(null);$('hud').hidden=false;paused=false;}else goTown();};
 $('townBtn').onclick=()=>{closeInv();castTP();};
@@ -2185,6 +2185,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
   else if(m.t==='potion'){if(S.potions<9)S.potions++;save();}
   else if(m.t==='xp'){if(G){addXp(m.n);petGainXp(m.n);}}
   else if(m.t==='kill')questKill(m.type);
+  else if(m.t==='npc'){if(G&&G.npcs)G.npcs.push({...m.n,npc:true});}
   else if(m.t==='map'){map=m.map.split('');renderMap();}
   else if(m.t==='toast')toast(m.msg,m.col);}
 function applyScene(m){map=m.map.split('');MW=m.MW;MH=m.MH;S.zone=m.zone;S.diff=m.diff;NET.emap=new Map();const hp0=G&&G.P?G.P.hp:stats().hp,av=NET.hostAv;
@@ -2283,7 +2284,7 @@ function dmgEnemy(e,d,crit,kx,ky){if(e.lvl)d*=Math.max(.5,Math.min(1.5,1+.06*(((
   if(e.hp<=0&&!e.dead)killEnemy(e);}
 function killEnemyV1(e){e.dead=true;addXp(e.xp);sparks(e.x,e.y-10,e.type==='boss'?'#b08cff':'#fff',e.type==='boss'?40:12);
   const il=S.lvl+S.dl-1,sc=(x,y)=>({x:x+rand(-18,18),y:y+rand(-14,14)});
-  if(e.type==='boss'){G.bossDead=true;G.winT=2.2;G.shake=12;
+  if(e.type==='boss'){G.bossDead=true;G.winT=0;G.shake=12;openWinPortal(e);
     G.loot.push({kind:'item',item:genItem(il+1,3),...sc(e.x,e.y),t:0});
     for(let i=0;i<3;i++)G.loot.push({kind:'item',item:genItem(il+1,rollRar(0.6)),...sc(e.x,e.y),t:0});
     G.loot.push({kind:'gold',n:80*S.dl+randi(0,40),...sc(e.x,e.y),t:0});return;}
@@ -2416,7 +2417,7 @@ function render(){
       groundShadow(cx,P.x,P.y+6,P.horse?18:10,P.horse?4.5:3.6);sprite(cx,P.x,P.y,P.horse?{w:84,h:84,oy:68}:{w:68,h:72,oy:54},c=>{if(P.horse)drawMounted(c,P);else drawHero(c,P.x,P.y+6,0.95,S.look,S.eq,P.dir,P.t,P.moving,P.swing);});cx.globalAlpha=1;}
     else if(e===G.P2)drawMate(cx,e);
     else if(e===G.pet||e.isPet){const ps=[1,1.2,1.42][e.stage||0];groundShadow(cx,e.x,e.y+1,7*ps,2.5*ps);sprite(cx,e.x,e.y,{w:64,h:72,oy:56},c=>drawPet(c,e));petLabel(cx,e);}
-    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate'].includes(e.id))drawNpc(cx,e,G.time);else{groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
+    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate','winportal'].includes(e.id))drawNpc(cx,e,G.time);else{groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
     else{groundShadow(cx,e.x,e.y+(e.type==='boss'?4:2),e.type==='boss'?20:e.r*1.1,e.type==='boss'?6:3);enemySprite(cx,e);
       if(e.type!=='boss'&&e.hp<e.max){cx.fillStyle='#000a';cx.fillRect(e.x-10,e.y-36,20,3);cx.fillStyle='#e8555a';cx.fillRect(e.x-10,e.y-36,20*e.hp/e.max,3);}
       if(e.lvl&&e.type!=='prop'&&(e.aggro||e.hp<e.max)){const dv=e.lvl-S.lvl,lc=dv>=5?'#ff3a3a':dv>=2?'#ff9b4a':dv<=-5?'#8a8a8a':dv<=-2?'#9be36a':'#f6e2c4',lx=e.type==='boss'?e.x:e.x-14,ly=e.type==='boss'?e.y-70:e.y-33;cx.font="900 8px 'Alegreya Sans',sans-serif";cx.textAlign='center';cx.lineWidth=2.5;cx.strokeStyle='#000';cx.strokeText(e.lvl,lx,ly);cx.fillStyle=lc;cx.fillText(e.lvl,lx,ly);}}}
@@ -2486,6 +2487,19 @@ function modal(title,text,btn,fn,cancel){$('mTitle').textContent=title;$('mText'
   $('mBtn').onclick=()=>{$('modal').hidden=true;fn();};$('mCancel').onclick=()=>{$('modal').hidden=true;paused=false;};}
 function onDeath(){const lost=Math.floor(S.gold*0.25);S.gold-=lost;save();
   modal((S.name||'Pavel')+' est tombé',`Tu perds ${lost} pièces d'or. Ton équipement est intact.`,'Se relever',()=>{const P=G.P;Object.assign(P,{...G.start,hp:stats().hp,dead:false,inv:1.5,kx:0,ky:0,fury:0});paused=false;});}
+// Portail de victoire : apparaît à la mort du boss, de la couleur du boss vaincu
+function openWinPortal(e){const y=hits(e.x,e.y-56,10)?e.y:e.y-56;const n={id:'winportal',npc:true,short:'Maison Bernissart',talk:'Retourner à la Maison Bernissart',x:e.x,y,col:e.pal.eye,aura:e.pal.aura,ph:0};
+  G.npcs=G.npcs||[];G.npcs.push(n);if(NET.host)NET.send({t:'npc',n});addFx({type:'ring',x:n.x,y:n.y-16,t:0,life:.8,col:n.col,r:70});SND.cast('ice');
+  toast(BIO().boss.name+' est vaincu ! Ramasse le butin, puis prends le portail quand tu veux.','#ffd84a');}
+function winReturn(){questCave(G.caveName);let n=0;for(const l of G.loot){if(l.kind==='item'&&S.bag.length<20){S.bag.push(l.item);n++;}else if(l.kind==='gold')S.gold+=l.n;}
+  S.dl++;DG=null;save();goTown();toast(n?`Victoire ! ${n} objet${n>1?'s':''} laissé${n>1?'s':''} au sol rangé${n>1?'s':''} dans ton sac`:'Victoire ! Bienvenue à la Maison Bernissart','#ffd84a');}
+function drawWinPortal(c,n,t){const col=n.col||'#9fd8ff',au=n.aura||'160,200,255';c.save();c.translate(n.x,n.y);c.fillStyle='rgba(0,0,0,.3)';ell(c,0,8,24,6);
+  const a=c.createRadialGradient(0,-16,4,0,-16,44);a.addColorStop(0,`rgba(${au},.45)`);a.addColorStop(1,`rgba(${au},0)`);c.fillStyle=a;circ(c,0,-16,44);
+  const g=c.createRadialGradient(0,-16,2,0,-16,26);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.45,hexA(col,.8));g.addColorStop(1,`rgba(${au},.15)`);
+  c.fillStyle=g;c.beginPath();c.ellipse(0,-16,18,26,0,0,TAU);c.fill();
+  c.strokeStyle=hexA(col,.9);c.lineWidth=1.6;for(let i=0;i<3;i++){c.beginPath();c.ellipse(0,-16,6+i*4.8,10+i*5.6,0,t*2.6+i*2,t*2.6+i*2+3.6);c.stroke();}
+  for(let i=0;i<8;i++){const q=(t*.5+i/8)%1,an=i*.8;c.fillStyle=hexA(col,1-q);circ(c,Math.cos(an)*(20-q*14),-16+Math.sin(an)*(28-q*20),1.4);}
+  c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText('Maison Bernissart',0,-50);c.fillStyle=col;c.fillText('Maison Bernissart',0,-50);c.restore();}
 function onWin(){questCave(G.caveName);save();modal(BIO().boss.name+' est vaincu',`Le butin restant est rangé dans ton sac. Le portail te ramène à la Maison Bernissart, où les artisans t'attendent.`,'Retour à la Maison Bernissart',
   ()=>{for(const l of G.loot)if(l.kind==='item'&&S.bag.length<20)S.bag.push(l.item);else if(l.kind==='gold')S.gold+=l.n;S.dl++;DG=null;save();goTown();});}
 
