@@ -183,6 +183,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #crName{max-width:240px;width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:9px 10px;font:inherit;font-weight:800;font-size:16px}
 .cr-desc{margin:0;color:var(--dim);line-height:1.4;max-width:62ch}
 #petPick{gap:12px}
+.pet-own{position:relative}.pet-rel{position:absolute;top:4px;right:6px;width:22px;height:22px;border-radius:50%;background:#3a1a1a;color:#ffb0b0;display:grid;place-items:center;font-size:12px;cursor:pointer}
+.pbar{display:block;height:4px;border-radius:2px;background:#0008;overflow:hidden;margin:3px 0}.pbar i{display:block;height:100%;background:#b08cff}
 #petPick h2{font-family:var(--font-display);font-weight:700;margin:0;font-size:34px;color:#f6e2c4}
 .nm b{font-weight:inherit}
 #castBar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(70vw,300px);text-align:center;font-weight:800;color:#bfe6ff;text-shadow:0 1px 3px #000}
@@ -310,7 +312,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 <div id="petPick" class="screen" hidden>
   <h2>Invocation</h2>
-  <span class="ex-lab">Choisis ton familier. Ses statistiques sont tirées au hasard à chaque invocation.</span>
+  <span class="ex-lab">Ta ménagerie : invoque un de tes familiers ou crée-en un nouveau. Ils gagnent de l'expérience en combattant, montent de niveau et évoluent aux niveaux 10 et 25.</span>
   <div class="zones" id="petCards"></div>
   <div class="ex-go"><button class="btn" id="petClose">Annuler</button></div>
 </div>
@@ -1416,72 +1418,141 @@ function mageNova(){const P=G.P,st=stats(),el=(S.eq.arme&&(S.eq.arme.elem||S.eq.
     if(e2==='ice')e.slow=3.5;else if(e2==='bolt')addFx({type:'bolt',x:P.x,y:P.y-12,x2:e.x,y2:e.y-12,t:0,life:.25});else sparks(e.x,e.y-10,'#ff9b2e',8);}}
 
 // ================= Familiers du Démoniste
-const PETS={loup:{name:'Loup',hp:60,atk:5,spd:115,col:'#7a6552',desc:'Mord vite au corps à corps.'},
-  diablotin:{name:'Diablotin',hp:40,atk:6,spd:95,col:'#c8343a',ranged:true,desc:'Lance des boules de feu à distance.'},
-  chauve:{name:'Chauve-souris',hp:35,atk:3,spd:150,col:'#4a3a6b',leech:true,desc:'Très rapide, soigne le héros à chaque morsure.'},
-  araignee:{name:'Araignée',hp:55,atk:4,spd:85,col:'#2b2b33',slow:true,desc:'Ses morsures ralentissent les ennemis.'}};
-function rollPet(type){const b=PETS[type],lv=1+0.2*(S.lvl-1),q=[rand(.6,1.6),rand(.6,1.6),rand(.7,1.4)],avg=(q[0]+q[1]+q[2])/3;
+// ================= Familiers du Démoniste : collection, niveaux et évolutions
+const PETS={
+  loup:{name:'Loup',evo:['Loup','Loup Alpha','Fenrir'],hp:60,atk:5,spd:115,col:'#7a6552',lvl:1,desc:'Mord vite au corps à corps.'},
+  diablotin:{name:'Diablotin',evo:['Diablotin','Démon','Seigneur infernal'],hp:40,atk:6,spd:95,col:'#c8343a',ranged:'fire',lvl:1,desc:'Lance des boules de feu à distance.'},
+  chauve:{name:'Chauve-souris',evo:['Chauve-souris','Vampire ailé','Nosferatu'],hp:35,atk:3,spd:150,col:'#4a3a6b',leech:true,lvl:1,desc:'Très rapide, soigne le héros à chaque morsure.'},
+  araignee:{name:'Araignée',evo:['Araignée','Tisseuse','Reine Arachne'],hp:55,atk:4,spd:85,col:'#2b2b33',slow:true,lvl:1,desc:'Ses morsures ralentissent les ennemis.'},
+  golem:{name:'Golem',evo:['Golem de pierre','Colosse','Titan'],hp:120,atk:6,spd:70,col:'#8a8276',tank:true,lvl:3,desc:'Énorme résistance, frappe fort et repousse les ennemis.'},
+  follet:{name:'Feu follet',evo:['Feu follet','Esprit glacé','Âme éternelle'],hp:30,atk:5,spd:120,col:'#7fd0ff',ranged:'ice',lvl:3,desc:'Projectiles de glace qui ralentissent.'},
+  serpent:{name:'Serpent',evo:['Serpent','Basilic','Hydre'],hp:50,atk:4,spd:100,col:'#4f9a3c',poison:true,lvl:5,desc:'Empoisonne : dégâts continus pendant plusieurs secondes.'},
+  corbeau:{name:'Corbeau',evo:['Corbeau','Freux de l\'ombre','Corbeau-tempête'],hp:32,atk:5,spd:160,col:'#2a2a3a',ranged:'bolt',lvl:5,desc:'Très rapide, lance des éclairs.'},
+  gluant:{name:'Gluant',evo:['Gluant','Gelée royale','Roi gluant'],hp:70,atk:3,spd:80,col:'#7fbf4a',heal:true,lvl:8,desc:'Soigne régulièrement le héros.'},
+  dragonnet:{name:'Dragonnet',evo:['Dragonnet','Drake','Dragon'],hp:65,atk:8,spd:110,col:'#d0602a',ranged:'fire',lvl:12,desc:'Le plus puissant : souffle de feu dévastateur.'}};
+const PET_EVO=[10,25],PET_MAX=6;
+function petNeed(l){return Math.round(20*Math.pow(l,1.4));}
+function petName(p){return PETS[p.type].evo[p.stage||0];}
+function petCalc(p){const b=PETS[p.type],m=(1+0.12*((p.lvl||1)-1))*[1,1.35,1.8][p.stage||0],q=p.q||[1,1,1];const old=p.max||1;
+  p.max=Math.round(b.hp*q[0]*m);p.atk=Math.max(1,Math.round(b.atk*q[1]*m));p.spd=Math.round(b.spd*q[2]*(1+.08*(p.stage||0)));if(p.hp==null)p.hp=p.max;else p.hp=Math.min(p.max,Math.round(p.hp*p.max/old));return p;}
+function rollPet(type){const q=[rand(.6,1.6),rand(.6,1.6),rand(.7,1.4)],avg=(q[0]+q[1]+q[2])/3;
   const tier=avg<.85?['Faible','#a69a8d']:avg<1.15?['Normal','#e6e0d2']:avg<1.38?['Fort','#6f9bff']:['Exceptionnel','#ff9b2e'];
-  const hp=Math.round(b.hp*q[0]*lv);return{type,hp,max:hp,atk:Math.max(1,Math.round(b.atk*q[1]*lv)),spd:Math.round(b.spd*q[2]),tier:tier[0],tcol:tier[1]};}
-function spawnPet(){const pt=S.pet;Object.assign(pt,{x:G.P.x-20,y:G.P.y,r:7,cd:0,t:R()*5,face:1,mv:false});G.pet=pt;G.petPlaced=true;}
-function openPetPick(){if((G.petCd||0)>0){toast('Invocation prête dans '+Math.ceil(G.petCd)+' s','#cbb8ff');return;}paused=true;
+  return petCalc({id:nid(),type,q,lvl:Math.max(1,Math.floor(S.lvl*.6)),xp:0,stage:0,tier:tier[0],tcol:tier[1]});}
+function petMigrate(){if(!S)return;S.pets=S.pets||[];if(S.pet&&!S.pet.q){const p=S.pet;p.q=[1,1,1];p.lvl=p.lvl||1;p.xp=0;p.stage=0;p.id=p.id||nid();p.hp=null;petCalc(p);S.pets.push(p);}
+  if(S.pet&&!S.pets.includes(S.pet)){const f=S.pets.find(x=>x.id===S.pet.id);if(f)S.pet=f;else S.pets.push(S.pet);}}
+function spawnPet(){const pt=S.pet;Object.assign(pt,{x:G.P.x-20,y:G.P.y,r:7+(pt.stage||0),cd:0,t:R()*5,face:1,mv:false});G.pet=pt;G.petPlaced=true;}
+function petGainXp(n){const p=S&&S.pet;if(!p||S.cls!=='demoniste'||p.ko>0||!PETS[p.type])return;p.xp=(p.xp||0)+Math.round(n*1.2);let up=false;
+  while(p.lvl<40&&p.xp>=petNeed(p.lvl)){p.xp-=petNeed(p.lvl);p.lvl++;up=true;
+    const st=p.lvl>=PET_EVO[1]?2:p.lvl>=PET_EVO[0]?1:0;if(st>(p.stage||0)){const old=petName(p);p.stage=st;petCalc(p);p.hp=p.max;
+      if(G&&G.pet===p){sparks(p.x,p.y-10,'#ffd84a',40);addFx({type:'ring',x:p.x,y:p.y-8,t:0,life:.8,col:'#ffd84a',r:70});G.shake=6;p.r=7+p.stage;}
+      SND.levelUp&&SND.levelUp();toast(`Quoi ? ${old} évolue… en ${petName(p)} !`,'#ffd84a');}}
+  if(up){petCalc(p);p.hp=p.max;if(G&&G.pet===p){sparks(p.x,p.y-8,'#b08cff',18);txt(p.x,p.y-30,'Niveau '+p.lvl+' !','#cbb8ff',true);}SND.item(1);}save();}
+function petCardHTML(p,active){const b=PETS[p.type],nx=p.lvl<PET_EVO[0]?PET_EVO[0]:p.lvl<PET_EVO[1]?PET_EVO[1]:0,ko=p.ko>0;
+  return `<div class="sw" style="background:radial-gradient(circle at 50% 60%,${b.col},#0d0a11 75%)"></div><b>${petName(p)} <small style="color:${p.tcol}">${p.tier}</small></b>
+  <small>Niv. ${p.lvl} · Vie ${p.max} · Att. ${p.atk}${ko?' · K.O.':''}${active?' · <b style="color:#9be36a">actif</b>':''}</small>
+  <small class="pbar"><i style="width:${Math.min(100,(p.xp||0)/petNeed(p.lvl)*100)}%"></i></small><small>${nx?'Évolue au niveau '+nx+' en '+b.evo[p.stage+1]:'Forme finale'}</small>`;}
+function openPetPick(){petMigrate();if((G.petCd||0)>0){toast('Invocation prête dans '+Math.ceil(G.petCd)+' s','#cbb8ff');return;}paused=true;
   const box=$('petCards');box.innerHTML='';
-  for(const k of Object.keys(PETS)){const b=PETS[k],btn=document.createElement('button');btn.type='button';btn.className='zone';btn.id='pet-'+k;
-    btn.innerHTML=`<div class="sw" style="background:radial-gradient(circle at 50% 60%,${b.col},#0d0a11 75%)"></div><b>${b.name}</b><small>${b.desc}</small>`;
-    btn.onclick=()=>summonPet(k);box.appendChild(btn);}
+  if(S.pets.length){const h=document.createElement('span');h.className='ex-lab';h.style.gridColumn='1/-1';h.textContent='Mes familiers ('+S.pets.length+'/'+PET_MAX+') : touche pour l\'invoquer';box.appendChild(h);}
+  for(const p of S.pets){const btn=document.createElement('button');btn.type='button';btn.className='zone pet-own';btn.innerHTML=petCardHTML(p,p===S.pet);
+    btn.onclick=()=>summonPet(p.id);const rel=document.createElement('span');rel.className='pet-rel';rel.textContent='✕';rel.title='Relâcher';
+    rel.onclick=ev=>{ev.stopPropagation();modal('Relâcher '+petName(p)+' ?','Il retournera à la nature. Son niveau ('+p.lvl+') sera perdu.','Relâcher',()=>{S.pets=S.pets.filter(x=>x!==p);if(S.pet===p){S.pet=null;G.pet=null;}save();openPetPick();},true);};
+    btn.appendChild(rel);box.appendChild(btn);}
+  const h2=document.createElement('span');h2.className='ex-lab';h2.style.gridColumn='1/-1';h2.textContent='Nouveau familier (statistiques tirées au hasard)';box.appendChild(h2);
+  for(const k of Object.keys(PETS)){const b=PETS[k],lock=S.lvl<b.lvl,btn=document.createElement('button');btn.type='button';btn.className='zone';btn.id='pet-'+k;btn.disabled=lock;if(lock)btn.style.opacity=.45;
+    btn.innerHTML=`<div class="sw" style="background:radial-gradient(circle at 50% 60%,${b.col},#0d0a11 75%)"></div><b>${b.name}</b><small>${lock?'Niveau '+b.lvl+' requis':b.desc}</small><small>${b.evo.join(' → ')}</small>`;
+    btn.onclick=()=>{if(lock)return;if(S.pets.length>=PET_MAX){toast('Tu as déjà '+PET_MAX+' familiers : relâches-en un (✕)','#ff6b6b');return;}const p=rollPet(k);S.pets.push(p);summonPet(p.id,true);};box.appendChild(btn);}
   show('petPick');}
-function summonPet(k){if(G&&G.client){show(null);paused=false;G.petCd=12;NET.send({t:'act',k:'pet',type:k});SND.cast('fire');return;}S.pet=rollPet(k);G.pet=null;G.petCd=12;show(null);paused=false;spawnPet();
-  const p=S.pet;sparks(p.x,p.y-6,'#b08cff',20);addFx({type:'ring',x:p.x,y:p.y-6,t:0,life:.5,col:'#b08cff',r:40});SND.cast('fire');
-  toast(`${PETS[k].name} (${p.tier}) : Vie ${p.hp} · Attaque ${p.atk} · Vitesse ${p.spd}`,p.tcol);save();}
+function summonPet(id,isNew){petMigrate();let p=S.pets.find(x=>x.id===id);if(!p&&PETS[id]){p=rollPet(id);S.pets.push(p);isNew=true;}if(!p)return;
+  if(p.ko>0){toast(petName(p)+' est K.O. encore '+Math.ceil(p.ko)+' s','#ff6b6b');return;}
+  S.pet=p;show(null);paused=false;G.petCd=8;
+  if(G&&G.client){NET.send({t:'act',k:'pet',type:p.type,pet:p});sendMe();SND.cast('fire');save();return;}
+  G.pet=null;spawnPet();sparks(p.x,p.y-6,'#b08cff',20);addFx({type:'ring',x:p.x,y:p.y-6,t:0,life:.5,col:'#b08cff',r:40});SND.cast('fire');
+  toast(isNew?`Nouveau : ${petName(p)} (${p.tier}) · Niv. ${p.lvl} · Vie ${p.max} · Attaque ${p.atk}`:`${petName(p)} répond à ton appel (niv. ${p.lvl})`,p.tcol);save();}
 $('petClose').onclick=()=>{show(null);paused=false;};
-function updPet(dt){G.petCd=(G.petCd||0)-dt;if(S.pet&&(G.pet!==S.pet||!G.petPlaced))spawnPet();if(!S.pet)G.pet=null;
+function updPet(dt){if(S.pet&&!S.pet.q)petMigrate();G.petCd=(G.petCd||0)-dt;
+  if(S.pets)for(const p of S.pets)if(p.ko>0){p.ko-=dt;if(p.ko<=0){p.ko=0;p.hp=p.max;if(p===S.pet){toast(petName(p)+' est de retour !','#9be36a');G.petPlaced=false;}}}
+  if(S.pet&&S.pet.ko>0){G.pet=null;return;}
+  if(S.pet&&(G.pet!==S.pet||!G.petPlaced))spawnPet();if(!S.pet)G.pet=null;
   const pt=G.pet;if(!pt)return;pt.t+=dt;pt.cd-=dt;const P=G.P,b=PETS[pt.type];
   if(G.town||G.home)pt.hp=Math.min(pt.max,pt.hp+dt*10);
-  let tg=null,bd=170;for(const e of G.enemies){if(e.dead||e.type==='prop')continue;const d=Math.hypot(e.x-P.x,e.y-P.y);if(d<bd){bd=d;tg=e;}}
+  // poison des serpents
+  for(const e of G.enemies){if(e.poison>0&&!e.dead){e.poison-=dt;e.ptick=(e.ptick||0)-dt;if(e.ptick<=0){e.ptick=.5;dmgEnemy(e,e.pdmg||1,false,0,0);addFx({type:'p',x:e.x+rand(-4,4),y:e.y-12,vx:0,vy:-20,t:0,life:.5,col:'#7fdf4a'});}}}
+  // soins du gluant
+  if(b.heal){pt.hcd=(pt.hcd||4)-dt;if(pt.hcd<=0){pt.hcd=4;const st=stats();if(P.hp<st.hp){const h=Math.round(st.hp*(.06+.03*(pt.stage||0)));P.hp=Math.min(st.hp,P.hp+h);txt(P.x,P.y-40,'+'+h,'#7fdf4a');sparks(P.x,P.y-12,'#9be36a',10);}}}
+  let tg=null,bd=170+(pt.stage||0)*20;for(const e of G.enemies){if(e.dead||e.type==='prop')continue;const d=Math.hypot(e.x-P.x,e.y-P.y);if(d<bd){bd=d;tg=e;}}
   let gx=P.x-(P.aim.x||0)*24-(P.aim.x?0:18),gy=P.y-(P.aim.y||0)*24;
   if(tg){if(b.ranged){gx=tg.x+(pt.x<tg.x?-90:90);gy=tg.y;}else{gx=tg.x;gy=tg.y;}}
   const dx=gx-pt.x,dy=gy-pt.y,d=Math.hypot(dx,dy)||1;pt.mv=false;
   if(d>(tg?(b.ranged?10:tg.r+6):14)){const hs=108*(1+stats().spd/100)*(P.horse?1.9:1),sp=(tg?Math.max(pt.spd,hs*0.9):hs*(d>50?1.2:1))*(d>200?1.6:1);moveEnt(pt,dx/d*Math.min(d,sp*dt),dy/d*Math.min(d,sp*dt));pt.mv=true;if(Math.abs(dx)>2)pt.face=dx>0?1:-1;}
   if(Math.hypot(P.x-pt.x,P.y-pt.y)>420){pt.x=P.x-16;pt.y=P.y;}
   if(tg&&pt.cd<=0){const td=Math.hypot(tg.x-pt.x,tg.y-pt.y)||1;
-    if(b.ranged&&td<230){pt.cd=1.1;const a=Math.atan2(tg.y-pt.y,tg.x-pt.x);G.pproj=G.pproj||[];
-      G.pproj.push({x:pt.x,y:pt.y-10,vx:Math.cos(a)*260,vy:Math.sin(a)*260,t:0,pt:0,el:'fire',dmg:pt.atk,hit:new Set()});}
-    else if(!b.ranged&&td<tg.r+14){pt.cd=b.leech?0.5:0.7;dmgEnemy(tg,pt.atk,false,(tg.x-pt.x)/td*80,(tg.y-pt.y)/td*80);
-      if(b.leech)P.hp=Math.min(stats().hp,P.hp+pt.atk*0.35);if(b.slow)tg.slow=1.5;}}
-  for(const e of G.enemies){if(!e.dead&&Math.hypot(e.x-pt.x,e.y-pt.y)<e.r+pt.r+2)pt.hp-=e.dmg*0.9*dt;}
-  for(const p of G.projs){if(!p.gone&&Math.hypot(p.x-pt.x,p.y-(pt.y-6))<pt.r+4){pt.hp-=p.dmg*0.6;p.gone=true;}}
-  if(pt.hp<=0){sparks(pt.x,pt.y-6,'#b08cff',14);toast('Ton familier est tombé. Invoque-en un autre !','#ff6b6b');S.pet=null;G.pet=null;}}
-function drawPet(c,pt){const b=PETS[pt.type],t=pt.t;
+    if(b.ranged&&td<230){pt.cd=b.ranged==='bolt'?.8:1.1;const a=Math.atan2(tg.y-pt.y,tg.x-pt.x);G.pproj=G.pproj||[];
+      const nb=pt.type==='dragonnet'&&pt.stage>=1?3:1;for(let i=0;i<nb;i++){const aa=a+(i-(nb-1)/2)*.18;G.pproj.push({x:pt.x,y:pt.y-10,vx:Math.cos(aa)*260,vy:Math.sin(aa)*260,t:0,pt:0,el:b.ranged,dmg:pt.atk,hit:new Set()});}}
+    else if(!b.ranged&&td<tg.r+14+(pt.stage||0)*2){pt.cd=b.leech?0.5:b.tank?1:0.7;const kb=b.tank?220:80;dmgEnemy(tg,pt.atk,false,(tg.x-pt.x)/td*kb,(tg.y-pt.y)/td*kb);
+      if(b.leech)P.hp=Math.min(stats().hp,P.hp+pt.atk*0.35);if(b.slow)tg.slow=1.5+(pt.stage||0)*.5;if(b.poison){tg.poison=3+(pt.stage||0);tg.pdmg=Math.max(1,Math.round(pt.atk*.45));}}}
+  const arm=b.tank?.45:1;
+  for(const e of G.enemies){if(!e.dead&&Math.hypot(e.x-pt.x,e.y-pt.y)<e.r+pt.r+2)pt.hp-=e.dmg*0.9*dt*arm;}
+  for(const p of G.projs){if(!p.gone&&Math.hypot(p.x-pt.x,p.y-(pt.y-6))<pt.r+4){pt.hp-=p.dmg*0.6*arm;p.gone=true;}}
+  if(pt.hp<=0){sparks(pt.x,pt.y-6,'#b08cff',14);pt.hp=0;pt.ko=20;G.pet=null;toast(petName(pt)+' est K.O. Il revient dans 20 s (ou invoque un autre familier).','#ff6b6b');save();}}
+function drawPet(c,pt){const b=PETS[pt.type]||PETS.loup,t=pt.t||0,st=pt.stage||0,sc=[1,1.2,1.42][st],col=st===2?shade(b.col,.12):b.col;
   c.save();c.translate(pt.x,pt.y);
-  if(pt.type==='loup'){c.scale(.8,.8);drawWolf(c,{x:0,y:0,t,face:pt.face,mv:pt.mv,col:b.col,hit:0});}
-  else{if(SHADOWS){c.fillStyle='rgba(0,0,0,.3)';ell(c,0,1,7,2.5);}c.scale(pt.face,1);
-    if(pt.type==='diablotin'){const fl=Math.sin(t*12)*1,wf=Math.sin(t*16)*2;const au=c.createRadialGradient(0,-10,1,0,-10,11+fl);au.addColorStop(0,'rgba(255,140,50,.35)');au.addColorStop(1,'rgba(255,100,30,0)');c.fillStyle=au;circ(c,0,-10,11+fl);
-      // ailes de chauve-souris
-      c.fillStyle=shade(b.col,-.4);for(const s of [-1,1]){c.beginPath();c.moveTo(-1*s,-10);c.lineTo(-8*s,-15-wf);c.lineTo(-7*s,-9);c.lineTo(-5*s,-10);c.lineTo(-4*s,-7);c.closePath();c.fill();}
-      // queue fourchue
-      c.strokeStyle=shade(b.col,-.15);c.lineWidth=1.3;c.lineCap='round';c.beginPath();c.moveTo(-4,-5);c.quadraticCurveTo(-10,-4,-9,-10);c.stroke();c.fillStyle=shade(b.col,-.15);c.beginPath();c.moveTo(-9,-10);c.lineTo(-11,-12);c.lineTo(-8,-12.4);c.closePath();c.fill();
-      const bg=c.createRadialGradient(-1.5,-9,.5,0,-7,6);bg.addColorStop(0,shade(b.col,.35));bg.addColorStop(1,shade(b.col,-.3));c.fillStyle=bg;ell(c,0,-7,5,5.5);
-      c.fillStyle=hexA(shade(b.col,.5),.5);ell(c,.5,-5.5,2.6,2.8);
-      const hg=c.createRadialGradient(0,-15.5,.4,1,-14,4.4);hg.addColorStop(0,shade(b.col,.4));hg.addColorStop(1,shade(b.col,-.2));c.fillStyle=hg;circ(c,1,-14,4.2);
-      c.fillStyle=lg(c,0,-22,0,-17,['#f0e0c0','#5a4030']);c.beginPath();c.moveTo(-2,-17);c.lineTo(-3.5,-22);c.lineTo(-0.5,-18);c.moveTo(2.5,-17.5);c.lineTo(4,-22);c.lineTo(4,-17);c.fill();
+  if(st>0){const au=c.createRadialGradient(0,-10,1,0,-10,16*sc);au.addColorStop(0,hexA(st===2?'#ffd84a':'#b08cff',.22));au.addColorStop(1,hexA('#b08cff',0));c.fillStyle=au;circ(c,0,-10,16*sc);}
+  if(SHADOWS){c.fillStyle='rgba(0,0,0,.3)';ell(c,0,1,7*sc,2.5*sc);}
+  c.scale(sc,sc);
+  if(pt.type==='loup'){c.scale(.8,.8);drawWolf(c,{x:0,y:0,t,face:pt.face,mv:pt.mv,col:st===2?'#cfd6e0':st===1?'#5a5f6a':b.col,hit:0});
+    if(st===2){c.scale(pt.face,1);c.shadowColor='#7fe3ff';c.shadowBlur=6;c.fillStyle='#7fe3ff';ell(c,10.4,-14,1.2,.9);c.shadowBlur=0;}}
+  else{c.scale(pt.face,1);
+    if(pt.type==='diablotin'||pt.type==='dragonnet'){const drag=pt.type==='dragonnet',fl=Math.sin(t*12)*1,wf=Math.sin(t*16)*2;
+      if(!drag){const au=c.createRadialGradient(0,-10,1,0,-10,11+fl);au.addColorStop(0,'rgba(255,140,50,.35)');au.addColorStop(1,'rgba(255,100,30,0)');c.fillStyle=au;circ(c,0,-10,11+fl);}
+      c.fillStyle=shade(col,-.4);for(const s of [-1,1]){c.beginPath();c.moveTo(-1*s,-10);c.lineTo(-(drag?11:8)*s,-(drag?17:15)-wf);c.lineTo(-7*s,-9);c.lineTo(-5*s,-10);c.lineTo(-4*s,-7);c.closePath();c.fill();}
+      c.strokeStyle=shade(col,-.15);c.lineWidth=drag?2:1.3;c.lineCap='round';c.beginPath();c.moveTo(-4,-5);c.quadraticCurveTo(-10,-4,-9,-10);c.stroke();c.fillStyle=shade(col,-.15);c.beginPath();c.moveTo(-9,-10);c.lineTo(-11,-12);c.lineTo(-8,-12.4);c.closePath();c.fill();
+      const bg=c.createRadialGradient(-1.5,-9,.5,0,-7,6);bg.addColorStop(0,shade(col,.35));bg.addColorStop(1,shade(col,-.3));c.fillStyle=bg;ell(c,0,-7,drag?6:5,5.5);
+      c.fillStyle=hexA(shade(col,.5),.5);ell(c,.5,-5.5,2.6,2.8);if(drag){c.strokeStyle=hexA(shade(col,-.4),.6);c.lineWidth=.4;c.beginPath();for(let k=0;k<3;k++){c.moveTo(-1.5,-7+k*1.6);c.lineTo(2.5,-7+k*1.6);}c.stroke();}
+      const hg=c.createRadialGradient(0,-15.5,.4,1,-14,4.4);hg.addColorStop(0,shade(col,.4));hg.addColorStop(1,shade(col,-.2));c.fillStyle=hg;circ(c,1,-14,4.2);if(drag){ell(c,4.4,-13,3,2);}
+      c.fillStyle=lg(c,0,-22,0,-17,['#f0e0c0','#5a4030']);c.beginPath();c.moveTo(-2,-17);c.lineTo(-3.5,-22-st);c.lineTo(-0.5,-18);c.moveTo(2.5,-17.5);c.lineTo(4,-22-st);c.lineTo(4,-17);c.fill();
       c.shadowColor='#ffd84a';c.shadowBlur=3;c.fillStyle='#ffd84a';ell(c,-.2,-14.5,1.1,.9);ell(c,2.9,-14.5,1.1,.9);c.shadowBlur=0;c.fillStyle='#2a0a0a';ell(c,0,-14.5,.35,.75);ell(c,3.1,-14.5,.35,.75);
-      c.strokeStyle='#3a0a0a';c.lineWidth=.5;c.beginPath();c.moveTo(-.3,-12.3);c.quadraticCurveTo(1.4,-11.2,3.3,-12.3);c.stroke();c.fillStyle='#fff';c.beginPath();c.moveTo(.4,-12);c.lineTo(.7,-11.2);c.lineTo(1,-11.9);c.fill();
-      c.fillStyle=shade(b.col,-.1);circ(c,-3.6,-7,1.3);circ(c,4.4,-7.5,1.3);}
-    else if(pt.type==='chauve'){const h=-14+Math.sin(t*5)*3,w=Math.sin(t*22)*4;
-      for(const s of [-1,1]){c.fillStyle=lg(c,0,h-4,0,h+3,[shade(b.col,.15),shade(b.col,-.35)]);c.beginPath();c.moveTo(0,h);c.lineTo(11*s,h-4+w);c.quadraticCurveTo(9.5*s,h,7*s,h+2);c.quadraticCurveTo(5*s,h+1,3*s,h+3);c.closePath();c.fill();
-        c.strokeStyle=hexA(shade(b.col,-.5),.8);c.lineWidth=.4;c.beginPath();c.moveTo(1*s,h);c.lineTo(7*s,h+2);c.moveTo(1*s,h);c.lineTo(10*s,h-3+w);c.stroke();}
-      const bg=c.createRadialGradient(-.8,h-1,.3,0,h+1,4);bg.addColorStop(0,shade(b.col,.35));bg.addColorStop(1,shade(b.col,-.3));c.fillStyle=bg;ell(c,0,h+1,3,4);
-      c.fillStyle=b.col;c.beginPath();c.moveTo(-2,h-2);c.lineTo(-2.6,h-5);c.lineTo(-.8,h-2.6);c.moveTo(2,h-2);c.lineTo(2.6,h-5);c.lineTo(.8,h-2.6);c.fill();
-      c.shadowColor='#ff4a4a';c.shadowBlur=3;c.fillStyle='#ff4a4a';circ(c,-1.1,h-0.5,0.75);circ(c,1.1,h-0.5,0.75);c.shadowBlur=0;c.fillStyle='#fff';c.beginPath();c.moveTo(-.6,h+1.2);c.lineTo(-.4,h+2.1);c.lineTo(-.2,h+1.2);c.moveTo(.2,h+1.2);c.lineTo(.4,h+2.1);c.lineTo(.6,h+1.2);c.fill();}
-    else{c.lineCap='round';for(let i=0;i<4;i++){const ph=Math.sin(t*14+i)*(pt.mv?2:0.3),yy=-6+i*1.6;for(const [lw,col] of [[1.7,shade(b.col,-.4)],[1,shade(b.col,.2)]]){c.strokeStyle=col;c.lineWidth=lw;c.beginPath();
+      c.strokeStyle='#3a0a0a';c.lineWidth=.5;c.beginPath();c.moveTo(-.3,-12.3);c.quadraticCurveTo(1.4,-11.2,3.3,-12.3);c.stroke();
+      if(drag&&Math.sin(t*3)>.6){c.fillStyle='rgba(255,170,60,.7)';ell(c,8,-12.5,2.5,1.2);c.fillStyle='rgba(255,230,120,.8)';ell(c,7.5,-12.5,1.2,.6);}
+      c.fillStyle=shade(col,-.1);circ(c,-3.6,-7,1.3);circ(c,4.4,-7.5,1.3);}
+    else if(pt.type==='chauve'||pt.type==='corbeau'){const crow=pt.type==='corbeau',h=-14+Math.sin(t*5)*3,w=Math.sin(t*22)*4;
+      for(const s of [-1,1]){c.fillStyle=lg(c,0,h-4,0,h+3,[shade(col,.15),shade(col,-.35)]);c.beginPath();c.moveTo(0,h);c.lineTo(11*s,h-4+w);
+        if(crow){c.lineTo(10*s,h-1+w);c.lineTo(8*s,h+1);c.lineTo(5*s,h+2);}else{c.quadraticCurveTo(9.5*s,h,7*s,h+2);c.quadraticCurveTo(5*s,h+1,3*s,h+3);}c.closePath();c.fill();
+        c.strokeStyle=hexA(shade(col,-.5),.8);c.lineWidth=.4;c.beginPath();c.moveTo(1*s,h);c.lineTo(7*s,h+2);c.moveTo(1*s,h);c.lineTo(10*s,h-3+w);c.stroke();}
+      const bg=c.createRadialGradient(-.8,h-1,.3,0,h+1,4);bg.addColorStop(0,shade(col,.35));bg.addColorStop(1,shade(col,-.3));c.fillStyle=bg;ell(c,0,h+1,3,4);
+      if(crow){c.fillStyle='#e8b04a';c.beginPath();c.moveTo(1.5,h-1);c.lineTo(5,h);c.lineTo(1.5,h+.8);c.closePath();c.fill();c.fillStyle=st>0?'#7fe3ff':'#ffd84a';circ(c,.6,h-1.2,.6);
+        if(st>0){c.strokeStyle='#bfe6ff';c.lineWidth=.6;c.beginPath();c.moveTo(-2,h+4);c.lineTo(-1,h+6);c.lineTo(-2.5,h+7);c.lineTo(-1.5,h+9);c.stroke();}}
+      else{c.fillStyle=col;c.beginPath();c.moveTo(-2,h-2);c.lineTo(-2.6,h-5);c.lineTo(-.8,h-2.6);c.moveTo(2,h-2);c.lineTo(2.6,h-5);c.lineTo(.8,h-2.6);c.fill();
+        c.shadowColor='#ff4a4a';c.shadowBlur=3;c.fillStyle='#ff4a4a';circ(c,-1.1,h-0.5,0.75);circ(c,1.1,h-0.5,0.75);c.shadowBlur=0;c.fillStyle='#fff';c.beginPath();c.moveTo(-.6,h+1.2);c.lineTo(-.4,h+2.1);c.lineTo(-.2,h+1.2);c.moveTo(.2,h+1.2);c.lineTo(.4,h+2.1);c.lineTo(.6,h+1.2);c.fill();
+        if(st>0){c.fillStyle='#8f1d22';c.beginPath();c.moveTo(-3,h-1);c.lineTo(3,h-1);c.lineTo(0,h+5);c.closePath();c.fill();}}}
+    else if(pt.type==='araignee'){c.lineCap='round';for(let i=0;i<4;i++){const ph=Math.sin(t*14+i)*(pt.mv?2:0.3),yy=-6+i*1.6;for(const [lw,cc] of [[1.7,shade(col,-.4)],[1,shade(col,.2)]]){c.strokeStyle=cc;c.lineWidth=lw;c.beginPath();
         c.moveTo(-2,yy);c.lineTo(-8,yy-3+ph);c.lineTo(-10,yy+3);c.moveTo(2,yy);c.lineTo(8,yy-3-ph);c.lineTo(10,yy+3);c.stroke();}}
-      const ab=c.createRadialGradient(-1.5,-7,.4,0,-5,5);ab.addColorStop(0,shade(b.col,.4));ab.addColorStop(1,shade(b.col,-.35));c.fillStyle=ab;ell(c,0,-5,4.5,4);
-      c.fillStyle='#c0303a';c.beginPath();c.moveTo(0,-7.2);c.lineTo(-1.2,-5);c.lineTo(0,-2.8);c.lineTo(1.2,-5);c.closePath();c.fill();
-      c.fillStyle=shade(b.col,.1);ell(c,0,-10,3,2.6);c.shadowColor='#ff4a4a';c.shadowBlur=2;c.fillStyle='#ff4a4a';circ(c,-1,-10.6,0.65);circ(c,1,-10.6,0.65);circ(c,-0.3,-11.6,0.5);circ(c,0.7,-11.6,0.5);c.shadowBlur=0;
-      c.fillStyle='#e8e0d0';c.beginPath();c.moveTo(-.9,-8);c.lineTo(-.6,-6.7);c.lineTo(-.3,-8);c.moveTo(.3,-8);c.lineTo(.6,-6.7);c.lineTo(.9,-8);c.fill();}}
-  c.restore();
-  c.font="800 9px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(b.name,pt.x,pt.y-28);c.fillStyle=pt.tcol;c.fillText(b.name,pt.x,pt.y-28);
-  c.fillStyle='#000a';c.fillRect(pt.x-9,pt.y-26,18,2.5);c.fillStyle='#6fd36a';c.fillRect(pt.x-9,pt.y-26,18*Math.max(0,pt.hp/pt.max),2.5);}
+      const ab=c.createRadialGradient(-1.5,-7,.4,0,-5,5);ab.addColorStop(0,shade(col,.4));ab.addColorStop(1,shade(col,-.35));c.fillStyle=ab;ell(c,0,-5,4.5,4);
+      c.fillStyle=st===2?'#ffd84a':'#c0303a';c.beginPath();c.moveTo(0,-7.2);c.lineTo(-1.2,-5);c.lineTo(0,-2.8);c.lineTo(1.2,-5);c.closePath();c.fill();
+      c.fillStyle=shade(col,.1);ell(c,0,-10,3,2.6);c.shadowColor='#ff4a4a';c.shadowBlur=2;c.fillStyle='#ff4a4a';circ(c,-1,-10.6,0.65);circ(c,1,-10.6,0.65);circ(c,-0.3,-11.6,0.5);circ(c,0.7,-11.6,0.5);c.shadowBlur=0;
+      if(st===2){c.fillStyle='#d9b24a';c.beginPath();c.moveTo(-2,-12.4);c.lineTo(-2,-14.6);c.lineTo(-1,-13.4);c.lineTo(0,-15);c.lineTo(1,-13.4);c.lineTo(2,-14.6);c.lineTo(2,-12.4);c.closePath();c.fill();}}
+    else if(pt.type==='golem'){const w=pt.mv?Math.sin(t*8)*1.2:0;const sg=(x0,y0,w0,h0)=>{c.fillStyle=lg(c,x0,y0,x0+w0,y0+h0,[shade(col,.3),col,shade(col,-.35)]);rr(c,x0,y0,w0,h0,2);};
+      sg(-5.5,-6+w,4,6);sg(1.5,-6-w,4,6);sg(-7,-17,14,12);sg(-10,-16,3.6,9);sg(6.4,-16,3.6,9);sg(-4,-23,8,7);
+      c.fillStyle='rgba(80,140,60,.7)';c.fillRect(-7,-17,5,2);c.fillRect(2,-12,4,1.5);
+      c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=.5;c.beginPath();c.moveTo(-2,-16);c.lineTo(0,-12);c.lineTo(-1,-8);c.stroke();
+      const gc=st===2?'#ffd84a':st===1?'#7fe3ff':'#9be36a';c.shadowColor=gc;c.shadowBlur=5;c.fillStyle=gc;c.fillRect(-2.6,-20.5,1.8,1.2);c.fillRect(.8,-20.5,1.8,1.2);circ(c,0,-11,1.3);c.shadowBlur=0;}
+    else if(pt.type==='follet'){const fy=-12+Math.sin(t*3)*2.5,cc=st===2?'#ffffff':col;
+      const g=c.createRadialGradient(0,fy,1,0,fy,10);g.addColorStop(0,hexA(cc,.95));g.addColorStop(.4,hexA(cc,.55));g.addColorStop(1,hexA(cc,0));c.fillStyle=g;circ(c,0,fy,10);
+      c.fillStyle=hexA(cc,.8);c.beginPath();c.moveTo(-3.5,fy+1);c.quadraticCurveTo(-1+Math.sin(t*8)*1.5,fy+9,0,fy+11);c.quadraticCurveTo(1+Math.sin(t*8+1)*1.5,fy+9,3.5,fy+1);c.closePath();c.fill();
+      c.fillStyle='#ffffff';circ(c,0,fy,3.4);c.fillStyle='#1a2a4a';ell(c,-1.2,fy-.4,.6,.9);ell(c,1.2,fy-.4,.6,.9);
+      for(let i=0;i<3+st*2;i++){const a=t*2+i*2.1;c.fillStyle=hexA(cc,.7);circ(c,Math.cos(a)*7,fy+Math.sin(a)*5,.7);}}
+    else if(pt.type==='serpent'){const n=7+st*2;for(let i=n;i>=0;i--){const q=i/n,x=-9+q*12,y=-3-Math.sin(t*6+i*.8)*(pt.mv?1.6:.6)-q*3,r=1.6+q*1.8;
+        c.fillStyle=i%2?shade(col,-.15):col;circ(c,x,y,r);if(i%2===0){c.fillStyle=hexA(shade(col,.5),.6);circ(c,x-.3,y-.6,r*.4);}}
+      const hx=4,hy=-8;c.fillStyle=lg(c,0,hy-3,0,hy+3,[shade(col,.3),shade(col,-.2)]);ell(c,hx,hy,4,2.8);if(st>=1){c.fillStyle=shade(col,-.3);c.beginPath();c.moveTo(hx-3,hy-1);c.lineTo(hx-1,hy-5);c.lineTo(hx+1,hy-2);c.closePath();c.fill();}
+      if(st===2){for(const o of [-5,-2]){c.fillStyle=col;circ(c,hx+o,hy-5,2.4);c.fillStyle='#ffd84a';circ(c,hx+o+.8,hy-5.5,.5);}}
+      c.fillStyle='#ffd84a';circ(c,hx+1.3,hy-.8,.75);c.fillStyle='#000';ell(c,hx+1.4,hy-.8,.25,.6);
+      if(Math.sin(t*4)>.3){c.strokeStyle='#e8555a';c.lineWidth=.5;c.beginPath();c.moveTo(hx+3.8,hy+.3);c.lineTo(hx+6,hy+.3);c.lineTo(hx+6.8,hy-.5);c.moveTo(hx+6,hy+.3);c.lineTo(hx+6.8,hy+1);c.stroke();}}
+    else if(pt.type==='gluant'){const sq=1+Math.sin(t*7)*0.12,rx=6.5/Math.sqrt(sq),ry=5.2*sq;
+      drawSlime(c,{x:0,y:0,r:6,t,col,hit:0});if(st>=1){c.fillStyle='#d9b24a';const cy=-ry*2+1.5;c.beginPath();c.moveTo(-3.5,cy);c.lineTo(-3.5,cy-3.5);c.lineTo(-1.8,cy-1.8);c.lineTo(0,cy-4.5);c.lineTo(1.8,cy-1.8);c.lineTo(3.5,cy-3.5);c.lineTo(3.5,cy);c.closePath();c.fill();if(st===2){c.fillStyle='#e8555a';circ(c,0,cy-1.2,.8);}}}}
+  c.restore();}
+function petLabel(c,pt){const st=pt.stage||0,sc=[1,1.2,1.42][st];{const nm=petName(pt)+(pt.lvl?' · '+pt.lvl:''),ly=pt.y-28*sc;c.font="800 9px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(nm,pt.x,ly);c.fillStyle=pt.tcol||'#e6e0d2';c.fillText(nm,pt.x,ly);
+    c.fillStyle='#000a';c.fillRect(pt.x-9,ly+2,18,2.5);c.fillStyle='#6fd36a';c.fillRect(pt.x-9,ly+2,18*Math.max(0,pt.hp/pt.max),2.5);}}
+
 
 // ================= Embellissement graphique : contours, volume, ombres, décors, lumières
 let SHADOWS=true;
@@ -1942,7 +2013,7 @@ function asGuest(fn){const sS=S,sP=G.P,sPet=G.pet,sCd=G.petCd,sPl=G.petPlaced,sP
   NET.gs.diff=S.diff;NET.gs.zone=S.zone;NET.gs.dl=S.dl;NET.realS=S;NET.realP=G.P;
   S=NET.gs;G.P=Q;G.pet=Q.pet||null;G.petCd=Q.petCd||0;G.petPlaced=Q.petPlaced;paused=false;NET.swapped=true;
   try{fn();}finally{Q.pet=G.pet;Q.petCd=G.petCd;Q.petPlaced=G.petPlaced;S=sS;G.P=sP;G.pet=sPet;G.petCd=sCd;G.petPlaced=sPl;paused=sPa;NET.swapped=false;}}
-function netXp(n){if(NET.swapped){const s0=S,p0=G.P;S=NET.realS;G.P=NET.realP;try{addXp(n);}finally{S=s0;G.P=p0;}}else addXp(n);if(NET.host)NET.send({t:'xp',n});}
+function netXp(n){if(NET.swapped){const s0=S,p0=G.P;S=NET.realS;G.P=NET.realP;try{addXp(n);petGainXp(n);}finally{S=s0;G.P=p0;}}else{addXp(n);petGainXp(n);}if(NET.host)NET.send({t:'xp',n});}
 function netTarget(e){const P=G.P,Q=G.P2;if(!Q||Q.dead||!NET.host)return P;if(P.dead)return Q;return Math.hypot(Q.x-e.x,Q.y-e.y)<Math.hypot(P.x-e.x,P.y-e.y)?Q:P;}
 function hurtAny(T,d,sx,sy){if(T===G.P){hurtPlayer(d,sx,sy);return;}if(T.inv>0||T.dead)return;
   const dmg=Math.max(1,Math.round(d-(T.def||0)*0.5));T.hp-=dmg;T.inv=0.7;T.fury=Math.min(100,(T.fury||0)+9);
@@ -1950,7 +2021,7 @@ function hurtAny(T,d,sx,sy){if(T===G.P){hurtPlayer(d,sx,sy);return;}if(T.inv>0||
   if(T.hp<=0){T.hp=0;T.dead=true;T.respawn=3;}}
 function applyMe(m){const first=!NET.P2;
   if(first)NET.P2={x:G?G.P.x+18:0,y:G?G.P.y:0,r:7,hp:100,max:100,def:0,spd:0,fury:0,dir:'down',aim:{x:0,y:1},atkCd:0,swing:0,inv:0,moving:false,t:0,kx:0,ky:0,dead:false,respawn:0,projCd:0};
-  NET.gs={name:m.name,cls:m.cls,look:m.look,eq:m.eq,lvl:m.lvl||1,bagFull:!!m.bagFull,potions:0,xp:0,gold:0,bag:[],pet:NET.gs?NET.gs.pet:(m.pet?{...m.pet}:null),diff:S.diff,zone:S.zone,dl:S.dl};
+  NET.gs={name:m.name,cls:m.cls,look:m.look,eq:m.eq,lvl:m.lvl||1,bagFull:!!m.bagFull,potions:0,xp:0,gold:0,bag:[],pet:(m.pet&&m.pet.q&&(!NET.gs||!NET.gs.pet||NET.gs.pet.id!==m.pet.id||NET.gs.pet.lvl!==m.pet.lvl))?petCalc({...m.pet,ko:0,hp:null}):(NET.gs?NET.gs.pet:(m.pet?{...m.pet}:null)),diff:S.diff,zone:S.zone,dl:S.dl};
   const Q=NET.P2;Q.look=m.look;Q.eq=m.eq;Q.name=m.name;if(!G)return;
   asGuest(()=>{const st=stats();Q.max=st.hp;Q.def=st.def;Q.spd=st.spd;});if(first)Q.hp=Q.max;else Q.hp=Math.min(Q.hp,Q.max);
   if(first){NET.lastG=null;sendAvatar();}}
@@ -1959,7 +2030,7 @@ function sendScene(){NET.send({t:'scene',kind:G.town?'town':G.home?'home':G.worl
   fountain:G.fountain&&G.fountain.x>0?{x:G.fountain.x,y:G.fountain.y}:null,
   npcs:(G.npcs||[]).map(n=>({id:n.id,short:n.short,talk:n.talk,name:n.name,role:n.role,x:n.x,y:n.y,look:n.look,eq:n.eq,ph:n.ph,zone:n.zone,lvl:n.lvl,qi:n.qi}))});}
 function sendSnap(){const r=v=>Math.round(v*10)/10,P=G.P,Q=NET.P2;for(const e of G.enemies)if(!e.nid)e.nid=++NET.eid;
-  const pet=p=>p?[p.type,r(p.x),r(p.y),Math.round(p.hp),p.max,p.tier,p.tcol,p.face,p.mv?1:0]:null;
+  const pet=p=>p?[p.type,r(p.x),r(p.y),Math.round(p.hp),p.max,p.tier,p.tcol,p.face,p.mv?1:0,p.stage||0,p.lvl||1]:null;
   NET.send({t:'snap',P:[r(P.x),r(P.y),P.dir,P.moving?1:0,r(P.swing),P.horse?1:0,P.dead?1:0],
     Q:[r(Q.x),r(Q.y),Q.dir,Q.moving?1:0,r(Q.swing),Q.horse?1:0,Q.dead?1:0,Math.round(Q.hp),Q.max,Math.round(Q.fury),r(Q.petCd||0)],
     en:G.enemies.filter(e=>!e.dead).map(e=>[e.nid,e.type,r(e.x),r(e.y),Math.round(e.hp),Math.round(e.max),e.face,r(e.hit),e.mv?1:0,e.slow>0?1:0,e.aggro?1:0,e.kind||0]),
@@ -1999,7 +2070,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
       else if(m.k==='gift'&&m.item&&m.item.slot){if(S.bag.length<20){S.bag.push(m.item);SND.item(m.item.rarity);}else dropAt(G.P,m.item);toast(NET.gs.name+' te donne '+m.item.name+(S.bag.length>=20?' (posé au sol, sac plein)':''),'#7fe3ff');save();}
       else if(m.k==='gold'&&m.n>0){S.gold+=Math.floor(m.n);SND.gold();toast(NET.gs.name+' te donne '+Math.floor(m.n)+' or','#d9b24a');save();}
       else if(m.k==='pot')NET.P2.hp=Math.min(NET.P2.max,NET.P2.hp+NET.P2.max*0.5);
-      else if(m.k==='pet'&&PETS[m.type]&&(NET.P2.petCd||0)<=0)asGuest(()=>{S.pet=rollPet(m.type);G.pet=null;G.petCd=12;spawnPet();sparks(G.pet.x,G.pet.y-6,'#b08cff',20);});}
+      else if(m.k==='pet'&&PETS[m.type]&&(NET.P2.petCd||0)<=0)asGuest(()=>{S.pet=m.pet&&m.pet.q?petCalc({...m.pet,ko:0}):rollPet(m.type);G.pet=null;G.petCd=12;spawnPet();sparks(G.pet.x,G.pet.y-6,'#b08cff',20);});}
     return;}
   if(!NET.guest)return;
   if(m.t==='scene')applyScene(m);else if(m.t==='snap')applySnap(m);
@@ -2007,7 +2078,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
   else if(m.t==='give'){if(m.gift)toast(m.gift+' te donne '+m.item.name,'#7fe3ff');if(S.bag.length<20&&m.item){S.bag.push(m.item);SND.item(m.item.rarity);if(G)txt(G.P.x,G.P.y-44,m.item.name,RAR[m.item.rarity].c,m.item.rarity>=2);save();}}
   else if(m.t==='gold'){if(m.gift)toast(m.gift+' te donne '+m.n+' or','#d9b24a');S.gold+=m.n;SND.gold();if(G)txt(G.P.x,G.P.y-44,'+'+m.n+' or','#d9b24a');save();}
   else if(m.t==='potion'){if(S.potions<9)S.potions++;save();}
-  else if(m.t==='xp'){if(G)addXp(m.n);}
+  else if(m.t==='xp'){if(G){addXp(m.n);petGainXp(m.n);}}
   else if(m.t==='kill')questKill(m.type);
   else if(m.t==='map'){map=m.map.split('');renderMap();}
   else if(m.t==='toast')toast(m.msg,m.col);}
@@ -2036,7 +2107,7 @@ function applySnap(m){if(!G||!G.client)return;const P=G.P,H=G.P2;
   G.pproj=m.pp.map(a=>({x:a[0],y:a[1],vx:a[2],vy:a[3],el:a[4]||null,kind:a[5]||null,phys:!!a[6],master:!!a[7]}));
   for(const f of m.fx||[]){f.t=0;G.fx.push(f);}
   const mk=(a,old)=>{if(!a)return null;const p=old&&old.type===a[0]?old:{t:R()*5};
-    Object.assign(p,{type:a[0],tx:a[1],ty:a[2],hp:a[3],max:a[4],tier:a[5],tcol:a[6],face:a[7],mv:!!a[8],isPet:true,r:7});if(p.x==null){p.x=a[1];p.y=a[2];}return p;};
+    Object.assign(p,{type:a[0],tx:a[1],ty:a[2],hp:a[3],max:a[4],tier:a[5],tcol:a[6],face:a[7],mv:!!a[8],stage:a[9]||0,lvl:a[10]||1,isPet:true,r:7});if(p.x==null){p.x=a[1];p.y=a[2];}return p;};
   G.pet=mk(m.gp,G.pet);const hp=mk(m.hp,G.pets[0]);G.pets=hp?[hp]:[];
   G.hasKey=!!m.key;G.tpCast=m.tp?{x:m.tp[0],y:m.tp[1],t:m.tp[2],dur:m.tp[3]}:null;if(G.fountain)G.fountain.cd=m.fc;}
 function clientUpdate(dt){if(!G||!G.client)return;G.time+=dt;const P=G.P;
@@ -2230,7 +2301,7 @@ function render(){
     if(e===P){if(P.inv>0&&Math.floor(P.inv*20)%2)cx.globalAlpha=0.45;
       groundShadow(cx,P.x,P.y+6,P.horse?18:10,P.horse?4.5:3.6);sprite(cx,P.x,P.y,P.horse?{w:84,h:84,oy:68}:{w:68,h:72,oy:54},c=>{if(P.horse)drawMounted(c,P);else drawHero(c,P.x,P.y+6,0.95,S.look,S.eq,P.dir,P.t,P.moving,P.swing);});cx.globalAlpha=1;}
     else if(e===G.P2)drawMate(cx,e);
-    else if(e===G.pet||e.isPet){groundShadow(cx,e.x,e.y+1,7,2.5);sprite(cx,e.x,e.y,{w:44,h:52,oy:38},c=>drawPet(c,e));}
+    else if(e===G.pet||e.isPet){const ps=[1,1.2,1.42][e.stage||0];groundShadow(cx,e.x,e.y+1,7*ps,2.5*ps);sprite(cx,e.x,e.y,{w:64,h:72,oy:56},c=>drawPet(c,e));petLabel(cx,e);}
     else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate'].includes(e.id))drawNpc(cx,e,G.time);else{groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
     else{groundShadow(cx,e.x,e.y+(e.type==='boss'?4:2),e.type==='boss'?20:e.r*1.1,e.type==='boss'?6:3);enemySprite(cx,e);
       if(e.type!=='boss'&&e.hp<e.max){cx.fillStyle='#000a';cx.fillRect(e.x-10,e.y-36,20,3);cx.fillStyle='#e8555a';cx.fillRect(e.x-10,e.y-36,20*e.hp/e.max,3);}}}
@@ -2271,7 +2342,7 @@ function toast(msg,col){if(NET.swapped)return;const el=$('toast');el.textContent
 function hud(){const P=G.P,st=stats();
   $('hpb').style.width=(P.hp/st.hp*100)+'%';$('hpt').textContent=Math.ceil(P.hp)+' / '+st.hp;
   $('fyb').style.width=(S.cls==='demoniste'?(G.pet?Math.max(0,G.pet.hp/G.pet.max*100):0):P.fury)+'%';$('furyBtn').classList.toggle('ready',S.cls==='demoniste'?(G.petCd||0)<=0:P.fury>=100);
-  $('furyLbl').textContent=S.cls==='demoniste'?(G.pet?PETS[G.pet.type].name:'Aucun familier'):CL().power;$('heroName').textContent=S.name||'Pavel';
+  $('furyLbl').textContent=S.cls==='demoniste'?(G.pet&&PETS[G.pet.type]?petName(G.pet)+' · niv. '+(G.pet.lvl||1):(S.pet&&S.pet.ko>0?'Familier K.O.':'Aucun familier')):CL().power;$('heroName').textContent=S.name||'Pavel';
   $('xpb').style.width=(S.xp/need(S.lvl)*100)+'%';$('lvl').textContent='Niv. '+S.lvl;
   $('gold').textContent=S.gold+' or';$('potN').textContent=S.potions;$('dlv').textContent=G.home?'Maison de Pavel':G.town?'La Maison Bernissart':BIO().name+' · '+DIF().name;$('keyInd').hidden=!G.hasKey;
   const b=G.enemies.find(e=>e.type==='boss'&&e.aggro);$('bossbar').hidden=!b;if(b){$('bossName').textContent=BIO().boss.name;$('bossb').style.width=(b.hp/b.max*100)+'%';}}
