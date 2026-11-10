@@ -1363,6 +1363,9 @@ function breakProp(e){sparks(e.x,e.y-8,e.kind==='glace'?'#bfe6ff':'#9a6a3a',14);
 const _sndHit=SND.hit,_sndDie=SND.die;
 SND.hit=function(type,crit){if(type==='prop'){if(!AU.ctx||!canPlay('hit-prop',0.05))return;nz(0.07,0.4,'lowpass',1400,300,2);tone('square',180,90,0.06,0.08);return;}_sndHit(type,crit);};
 SND.die=function(type){if(type==='prop'){if(!AU.ctx||!canPlay('die-prop',0.08))return;const t=AU.ctx.currentTime;nz(0.25,0.5,'lowpass',2200,200,1);crunch(t,0.25,500,0.2);return;}_sndDie(type);};
+// Jeter un objet au sol, devant le héros (l'autre joueur peut le ramasser)
+function dropAt(P,it){const ax=(P.aim&&P.aim.x)||0,ay=(P.aim&&P.aim.y)||1;G.loot.push({kind:'item',item:it,x:P.x+ax*30,y:P.y+ay*30+(ay<0?0:4),t:-1.5});}
+function dropItem(it){if(!G)return;if(G.client){NET.send({t:'act',k:'drop',item:it});return;}dropAt(G.P,it);}
 function pushProps(p){if(!p||!G)return;for(const e of G.enemies){if(e.dead||e.type!=='prop')continue;const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx,dy)||0.01,m=p.r+e.r-2;if(d<m)moveEnt(p,dx/d*(m-d),dy/d*(m-d));}}
 
 // ================= Héros multiples et menu principal
@@ -1466,6 +1469,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
     if(m.t==='me')applyMe(m);else if(m.t==='in')NET.inp=m;
     else if(m.t==='act'&&NET.P2&&!NET.P2.dead&&G){
       if(m.k==='fury'&&NET.gs.cls!=='demoniste')asGuest(()=>useFury());
+      else if(m.k==='drop'&&m.item&&m.item.slot)dropAt(NET.P2,m.item);
       else if(m.k==='pot')NET.P2.hp=Math.min(NET.P2.max,NET.P2.hp+NET.P2.max*0.5);
       else if(m.k==='pet'&&PETS[m.type]&&(NET.P2.petCd||0)<=0)asGuest(()=>{S.pet=rollPet(m.type);G.pet=null;G.petCd=12;spawnPet();sparks(G.pet.x,G.pet.y-6,'#b08cff',20);});}
     return;}
@@ -1823,12 +1827,13 @@ function renderDetail(){const d=$('detail');const it=sel?(sel.from==='eq'?S.eq[s
   const cur=sel.from==='bag'?S.eq[it.slot]:null;
   let rows='';for(const k of Object.keys(STATN)){const v=it.stats[k],cv=cur?cur.stats[k]:0;if(!v&&!cv)continue;
     const diff=v-cv;rows+=`<li>${STATN[k]} <b>${fmt(k,v)}</b>${sel.from==='bag'&&diff?` <span class="${diff>0?'up':'down'}">(${diff>0?'+':''}${diff})</span>`:''}</li>`;}
-  const acts=sel.from==='bag'?`${canEquip(it)?'<button class="btn primary" id="eqBtn">Équiper</button>'+(CL().dual&&it.sub==='dague'?'<button class="btn" id="eqLeft">Main gauche</button>':''):'<button class="btn" id="eqBtn" disabled>Interdit au '+CL().name.toLowerCase()+'</button>'}<button class="btn" id="sellBtn">Vendre ${itemValue(it)} or</button>`:`<button class="btn" id="unBtn">Retirer</button>`;
+  const acts=sel.from==='bag'?`${canEquip(it)?'<button class="btn primary" id="eqBtn">Équiper</button>'+(CL().dual&&it.sub==='dague'?'<button class="btn" id="eqLeft">Main gauche</button>':''):'<button class="btn" id="eqBtn" disabled>Interdit au '+CL().name.toLowerCase()+'</button>'}<button class="btn" id="sellBtn">Vendre ${itemValue(it)} or</button><button class="btn" id="dropBtn">Jeter au sol</button>`:`<button class="btn" id="unBtn">Retirer</button>`;
   d.innerHTML=`<h3 style="color:${RAR[it.rarity].c}">${iname(it)}</h3><div class="meta">${SLOTN[it.slot]} · ${it.mat} · ${RAR[it.rarity].n} · niv. ${it.ilvl}${cur?' · comparé à '+cur.name:''}</div><ul>${rows}</ul>${(it.proj||RW[it.sub])?`<p class="power">${it.proj?POWERS[it.proj]:RDESC(it)}</p>`:''}<div class="acts">${acts}</div>`;
   const keepHp=()=>{const r=G.P.hp/stats().hp;return()=>{G.P.hp=Math.max(1,Math.round(stats().hp*r));};};
   if(sel.from==='bag'){
     $('eqBtn').onclick=()=>doEquip(it,sel.i,'main');if($('eqLeft'))$('eqLeft').onclick=()=>doEquip(it,sel.i,'left');
-    $('sellBtn').onclick=()=>{S.gold+=itemValue(it);S.bag.splice(sel.i,1);sel=null;save();renderInv();};}
+    $('sellBtn').onclick=()=>{S.gold+=itemValue(it);S.bag.splice(sel.i,1);sel=null;save();renderInv();};
+    $('dropBtn').onclick=()=>{S.bag.splice(sel.i,1);sel=null;dropItem(it);save();renderInv();toast('Objet posé au sol','#f6e2c4');};}
   else $('unBtn').onclick=()=>{if(S.bag.length>=20){toast('Sac plein','#ff6b6b');return;}const fix=keepHp();S.bag.push(it);S.eq[sel.slot]=null;fix();sel={from:'bag',i:S.bag.length-1};save();renderInv();};}
 document.querySelectorAll('.slot').forEach(el=>el.onclick=()=>{if(S.eq[el.dataset.slot]){sel={from:'eq',slot:el.dataset.slot};renderInv();}});
 $('bagBtn').onclick=openInv;$('invClose').onclick=closeInv;$('invClose2').onclick=closeInv;$('lookBtn').onclick=()=>openCreator('edit');
