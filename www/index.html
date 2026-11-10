@@ -21,7 +21,7 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;background:#07060a}
+#stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;background:#07060a;filter:saturate(1.4) contrast(1.06) brightness(1.05)}
 
 /* Écrans plein écran */
 .screen{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;overflow-y:auto;
@@ -332,13 +332,13 @@ function hash(x,y){let h=(x*374761393+y*668265263)|0;h=Math.imul(h^(h>>>13),1274
 // ================= Données
 const KEY='pavels-fury-v1';
 const BIOMES={
-  donjon:{name:'Donjon',desc:'Couloirs de pierre, torches et squelettes.',sw:'linear-gradient(135deg,#2b2531,#4a3f45 60%,#e2672e)',dark:'6,4,10',darkA:.85,inner:70,
+  donjon:{name:'Donjon',desc:'Couloirs de pierre, torches et squelettes.',sw:'linear-gradient(135deg,#2b2531,#4a3f45 60%,#e2672e)',dark:'6,4,10',darkA:.72,inner:70,
     mobs:['slime','skel'],slime:'#9a5fd0',skel:'#e4ddc6',wolf:'#7a6a5a',
     boss:{name:'Le Roi Spectre',top:'#6a2f8c',bot:'#1c0f26',aura:'140,90,220',eye:'#8af6ff',proj:'#bdfaff',crown:'#d9b24a'}},
-  foret:{name:'Forêt',desc:'Clairières, loups affamés et gluants des mousses.',sw:'linear-gradient(135deg,#1d2a17,#3d5a2a 55%,#a8c95a)',dark:'8,16,6',darkA:.5,inner:120,
+  foret:{name:'Forêt',desc:'Clairières, loups affamés et gluants des mousses.',sw:'linear-gradient(135deg,#1d2a17,#3d5a2a 55%,#a8c95a)',dark:'8,16,6',darkA:.36,inner:120,
     mobs:['slime','wolf','wolf'],slime:'#7bbf3a',skel:'#e4ddc6',wolf:'#7a6552',
     boss:{name:`L'Esprit Sylvestre`,top:'#3f7a2c',bot:'#12240c',aura:'120,200,90',eye:'#e8ff7a',proj:'#d8ff8a',crown:'#8a5a35',antlers:true}},
-  glace:{name:'Glacier',desc:'Neige, glace, loups blancs et squelettes gelés.',sw:'linear-gradient(135deg,#6f9fc4,#c9dbe6 55%,#ffffff)',dark:'12,24,44',darkA:.55,inner:110,
+  glace:{name:'Glacier',desc:'Neige, glace, loups blancs et squelettes gelés.',sw:'linear-gradient(135deg,#6f9fc4,#c9dbe6 55%,#ffffff)',dark:'12,24,44',darkA:.4,inner:110,
     mobs:['slime','skel','wolf'],slime:'#7fd6f0',skel:'#cfe6ff',wolf:'#e8eef4',
     boss:{name:'Le Jarl de Givre',top:'#4a7fb0',bot:'#0e2238',aura:'140,200,255',eye:'#ffffff',proj:'#e0f6ff',crown:'#cfe6ff'}}
 };
@@ -944,7 +944,7 @@ function ensureBase(it){if(!it.bst)it.bst={...it.stats};if(!it.up)it.up=0;}
 function recompute(it){ensureBase(it);const k=1+0.15*it.up;for(const s in it.bst){const b=it.bst[s];it.stats[s]=b>0?Math.max(b+it.up,Math.round(b*k)):0;}}
 function dropIcon(it){iconCache.delete(it.id);urlCache.delete(it.id);}
 const statSum=it=>Object.keys(STATN).filter(k=>it.stats[k]).map(k=>STATN[k]+' '+fmt(k,it.stats[k])).join(' · ')||'Aucune statistique';
-const TOWN_LIGHT={dark:'30,18,8',darkA:.28,inner:170};
+const TOWN_LIGHT={dark:'30,18,8',darkA:.2,inner:170};
 const DYES=['#b8312f','#c96b2a','#d9b24a','#2f7a3a','#3ab0b0','#1f5fa8','#6a4b92','#d65f9a','#7a4a2a','#2b2b33','#9aa3ad','#e6e1d6'];
 const HOUSES=[{x:2,y:2,w:6,h:3,name:'Forge',roof:'#7a2e22'},{x:20,y:2,w:6,h:3,name:'Mystique',roof:'#4a3a6b'},
   {x:2,y:13,w:6,h:3,name:'Bazar',roof:'#2f5d8a'},{x:20,y:13,w:6,h:3,name:'Parieur',roof:'#6b5a2b'},{x:11,y:14,w:6,h:4,name:'La Maison Bernissart',roof:'#8f1d22',home:true}];
@@ -1339,7 +1339,7 @@ function sprite(c,x,y,box,fn,opt){
   OX.setTransform(1,0,0,1,0,0);OX.globalCompositeOperation='source-over';OX.globalAlpha=1;OX.clearRect(0,0,W,H);
   OX.setTransform(k,0,0,k,3+(box.w/2-x)*k,3+(box.oy-y)*k);SHADOWS=false;try{fn(OX);}finally{SHADOWS=true;}
   OX.setTransform(1,0,0,1,0,0);OX.globalCompositeOperation='source-atop';
-  const g=OX.createLinearGradient(0,0,W*0.35,H);g.addColorStop(0,'rgba(255,238,215,.20)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(12,6,24,.34)');
+  const g=OX.createLinearGradient(0,0,W*0.35,H);g.addColorStop(0,'rgba(255,238,215,.20)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(12,6,24,.2)');
   OX.fillStyle=g;OX.fillRect(0,0,W,H);
   if(opt&&opt.flash){OX.fillStyle=`rgba(255,255,255,${opt.flash})`;OX.fillRect(0,0,W,H);}
   OX.globalCompositeOperation='source-over';
