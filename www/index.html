@@ -83,6 +83,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .bar.fury i{background:linear-gradient(90deg,#b84a1d,#ffb15a)}
 .bar.xp{height:5px}.bar.xp i{background:var(--xp)}
 .bar b{position:absolute;inset:0;font-size:10.5px;line-height:12px;text-align:center;font-weight:800;text-shadow:0 1px 1px #000;font-variant-numeric:tabular-nums}
+#miniCv{width:132px;height:132px;border-radius:10px;pointer-events:auto;box-shadow:0 2px 10px #000a;cursor:pointer}
+@media (max-height:520px),(max-width:520px){#miniCv{width:96px;height:96px}}
 .res{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-weight:800;font-size:13px;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
 .res .gold{color:var(--gold)}
 .res .key{color:#ffd84a}
@@ -266,6 +268,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <div id="questTrack" hidden></div>
     </div>
     <div class="res">
+      <canvas id="miniCv" aria-label="Minicarte"></canvas>
       <button id="bagBtn">Sac</button>
       <button id="hudMenuBtn" type="button">Menu</button>
       <button id="mapBtn" type="button" hidden>Carte</button>
@@ -1834,6 +1837,7 @@ function drawWorldMap(){if(!G||!G.world||!G.showMap)return;const sz=Math.min(W,H
   const k=sz/WW;cx.font="700 10px 'Alegreya Sans',sans-serif";
   for(const c of WORLD.caves){const px=x0+(c.tx+.5)*k,py=y0+(c.ty+.5)*k;cx.fillStyle={glace:'#9fe0ff',foret:'#9be36a',donjon:'#ff8a5a'}[c.zone];cx.beginPath();cx.arc(px,py,4,0,TAU);cx.fill();cx.strokeStyle='#000';cx.lineWidth=1;cx.stroke();}
   cx.fillStyle='#ffd84a';cx.fillRect(x0+(WORLD.tx-1.5)*k,y0+(WORLD.ty-1.5)*k,3*k+2,3*k+2);
+  for(const q of questTargets()){cx.strokeStyle=q.col;cx.lineWidth=2.5;cx.beginPath();cx.arc(x0+q.x/TS*k,y0+q.y/TS*k,7+Math.sin(G.time*5)*2,0,TAU);cx.stroke();cx.fillStyle=q.col;cx.font="900 12px 'Alegreya Sans',sans-serif";cx.textAlign='center';cx.fillText(q.lab,x0+q.x/TS*k,y0+q.y/TS*k-11);}
   const pl=[[G.P,'#ffffff']];if(G.P2)pl.push([G.P2,'#7fe3ff']);for(const [p,col] of pl){const px=x0+p.x/TS*k,py=y0+p.y/TS*k;cx.fillStyle=col;cx.beginPath();cx.arc(px,py,4+Math.sin(G.time*6)*1.5,0,TAU);cx.fill();cx.strokeStyle='#000';cx.stroke();}
   cx.fillStyle='#f6e2c4';cx.textAlign='left';cx.fillText('● Glace',x0,y0+sz+14);cx.fillStyle='#9be36a';cx.fillText('● Forêt',x0+60,y0+sz+14);cx.fillStyle='#ff8a5a';cx.fillText('● Crypte',x0+120,y0+sz+14);cx.fillStyle='#ffd84a';cx.fillText('■ Maison Bernissart',x0+185,y0+sz+14);}
 // ================= Quêtes de Pavelmonde
@@ -1886,6 +1890,45 @@ function questTrack(){const el=$('questTrack');if(!el)return;const qs=(S&&S.ques
   if(el.__h!==h){el.__h=h;el.innerHTML=h;}el.hidden=!qs.length;}
 function drawQMark(c,n,t){const st=qState(n.qi);if(!st||st==='…')return;const y=n.y-56+Math.sin(t*3)*2;
   c.font="900 16px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=4;c.strokeStyle='#2a1a08';c.strokeText(st,n.x,y);c.fillStyle=st==='?'?'#7fe3ff':'#ffd84a';c.fillText(st,n.x,y);}
+// ================= Minicarte (coin supérieur droit)
+const MINI_COL={'.':'#a89f92','D':'#d9b24a','H':'#a0522d'};
+function miniBase(){if(G.world)return WORLD.mini;
+  if(!G.mini||G.miniFor!==map){G.miniFor=map;const c=document.createElement('canvas');c.width=MW;c.height=MH;G.mini=c;G.seen=new Uint8Array(MW*MH);G.fog=!(G.town||G.home);
+    if(!G.fog){const m=c.getContext('2d');for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){const ch=map[y*MW+x],col=G.town&&ch==='.'&&(x===1||y===1||x===MW-2||y===MH-2)?'#6b8c45':MINI_COL[ch]||(ch==='#'?'#24361a':null);if(col){m.fillStyle=col;m.fillRect(x,y,1,1);}}}}
+  return G.mini;}
+function miniReveal(){if(!G.fog)return;const P=G.P,tx=Math.floor(P.x/TS),ty=Math.floor(P.y/TS),m=G.mini.getContext('2d');
+  for(let dy=-7;dy<=7;dy++)for(let dx=-9;dx<=9;dx++){if(dx*dx/81+dy*dy/49>1)continue;const x=tx+dx,y=ty+dy;if(x<0||y<0||x>=MW||y>=MH)continue;const i=y*MW+x;if(G.seen[i])continue;G.seen[i]=1;
+    const ch=map[i];let col=MINI_COL[ch];if(ch==='#'){for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]])if(tileAt(x+a,y+b)!=='#')col='#4e4656';}if(col){m.fillStyle=col;m.fillRect(x,y,1,1);}}}
+function questTargets(){const out=[];if(!G||!G.world||!S||!S.quests)return out;const npc=qi=>G.npcs.find(n=>n.id==='quest'&&n.qi===qi);
+  for(const q of S.quests){if(q.done){const n=npc(q.npc);if(n)out.push({x:n.x,y:n.y,col:'#7fe3ff',lab:'?'});}
+    else if(q.kind==='deliver'){const n=npc(q.target);if(n)out.push({x:n.x,y:n.y,col:'#ffd84a',lab:'✉'});}
+    else if(q.kind==='cave'){const n=G.npcs.find(n=>n.id==='cave'&&n.short===q.cave);if(n)out.push({x:n.x,y:n.y,col:'#ff9b4a',lab:'⚔'});}}
+  return out;}
+function drawMini(){const el=$('miniCv');if(!el||!G||!G.P)return;const sz=el.clientWidth;if(!sz)return;const D=Math.min(2,DPR||1),px=Math.round(sz*D);if(el.width!==px){el.width=px;el.height=px;}
+  const c=el.getContext('2d');c.setTransform(D,0,0,D,0,0);c.clearRect(0,0,sz,sz);c.fillStyle='rgba(13,10,17,.78)';c.fillRect(0,0,sz,sz);
+  const src=miniBase();miniReveal();const P=G.P,vw=G.world?64:Math.max(MW,MH)+2,s=sz/vw;
+  let ox=G.world?P.x/TS-vw/2:MW/2-vw/2,oy=G.world?P.y/TS-vw/2:MH/2-vw/2;if(G.world){ox=Math.max(0,Math.min(WW-vw,ox));oy=Math.max(0,Math.min(WH-vw,oy));}
+  c.imageSmoothingEnabled=false;const sx=Math.max(0,ox),sy=Math.max(0,oy),sw=Math.min(src.width,ox+vw)-sx,sh=Math.min(src.height,oy+vw)-sy;
+  if(sw>0&&sh>0)c.drawImage(src,sx,sy,sw,sh,(sx-ox)*s,(sy-oy)*s,sw*s,sh*s);c.imageSmoothingEnabled=true;
+  const at=(x,y)=>[(x/TS-ox)*s,(y/TS-oy)*s],inV=([x,y])=>x>-4&&y>-4&&x<sz+4&&y<sz+4,seen=(x,y)=>!G.fog||G.seen[Math.floor(y/TS)*MW+Math.floor(x/TS)];
+  const dot=(x,y,r,col,stroke)=>{const p=at(x,y);if(!inV(p))return;c.fillStyle=col;c.beginPath();c.arc(p[0],p[1],r,0,TAU);c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.stroke();}};
+  if(G.fountain&&G.fountain.x>0&&seen(G.fountain.x,G.fountain.y))dot(G.fountain.x,G.fountain.y,2.5,'#7fc6ff');
+  for(const ch of G.chests||[])if(!ch.open&&seen(ch.x,ch.y))dot(ch.x,ch.y,2.2,'#ffd84a','#3a2a08');
+  for(const l of G.loot||[])if(l.kind==='key'&&seen(l.x,l.y))dot(l.x,l.y,2.6,'#fff27a','#000');
+  for(const n of G.npcs||[]){if(n.id==='door'||n.id==='exit')continue;const col=n.id==='cave'?({glace:'#9fe0ff',foret:'#9be36a',donjon:'#ff8a5a'}[n.zone]):n.id==='quest'?(qState(n.qi)==='?'?'#7fe3ff':qState(n.qi)?'#ffd84a':'#bba'):n.id==='portal'||n.id==='rportal'?'#ff9b4a':n.id==='wgate'||n.id==='worldgate'?'#ffd84a':'#f6e2c4';
+    dot(n.x,n.y,n.id==='cave'?3:2.2,col,'#000');}
+  for(const e of G.enemies||[]){if(e.dead||e.type==='prop')continue;if(e.type==='boss'){if(seen(e.x,e.y))dot(e.x,e.y,3.6,'#c88cff','#000');continue;}if(Math.hypot(e.x-P.x,e.y-P.y)<TS*11)dot(e.x,e.y,1.6,'#ff4a4a');}
+  if(G.world){const p=at((WORLD.tx+.5)*TS,(WORLD.ty+.5)*TS);if(inV(p)){c.fillStyle='#ffd84a';c.fillRect(p[0]-3,p[1]-3,6,6);c.strokeStyle='#000';c.strokeRect(p[0]-3,p[1]-3,6,6);}}
+  if(G.P2)dot(G.P2.x,G.P2.y,2.8,'#7fe3ff','#000');if(G.pet)dot(G.pet.x,G.pet.y,1.6,'#cbb8ff');
+  // suivi automatique des quêtes : cercle sur l'objectif, ou flèche au bord s'il est hors de la carte
+  const cp=at(P.x,P.y),pul=Math.sin((G.time||0)*5);
+  for(const q of questTargets()){const p=at(q.x,q.y);c.strokeStyle=q.col;c.fillStyle=q.col;
+    if(p[0]>5&&p[1]>5&&p[0]<sz-5&&p[1]<sz-5){c.lineWidth=1.6;c.beginPath();c.arc(p[0],p[1],4.5+pul*1.2,0,TAU);c.stroke();c.font="900 9px 'Alegreya Sans',sans-serif";c.textAlign='center';c.fillText(q.lab,p[0],p[1]-7);}
+    else{const dx=p[0]-cp[0],dy=p[1]-cp[1],k=Math.min((sz/2-8)/Math.abs(dx||1e-6),(sz/2-8)/Math.abs(dy||1e-6)),ex=sz/2+dx*k,ey=sz/2+dy*k,an=Math.atan2(dy,dx);
+      c.save();c.translate(ex,ey);c.rotate(an);c.beginPath();c.moveTo(6+pul,0);c.lineTo(-3,4.5);c.lineTo(-3,-4.5);c.closePath();c.fill();c.strokeStyle='#000';c.lineWidth=1;c.stroke();c.restore();}}
+  const pp=at(P.x,P.y),a=Math.atan2(P.aim.y||0,P.aim.x||0);c.save();c.translate(pp[0],pp[1]);c.rotate(a);c.fillStyle='#ffffff';c.strokeStyle='#000';c.lineWidth=1;c.beginPath();c.moveTo(5,0);c.lineTo(-3.5,3.5);c.lineTo(-1.5,0);c.lineTo(-3.5,-3.5);c.closePath();c.fill();c.stroke();c.restore();
+  c.strokeStyle='rgba(217,178,74,.65)';c.lineWidth=2;c.strokeRect(1,1,sz-2,sz-2);
+  c.font="800 9px 'Alegreya Sans',sans-serif";c.textAlign='left';c.fillStyle='#f6e2c4';c.fillText(G.world?'Pavelmonde':G.town?'Maison Bernissart':G.home?'Maison':BIO().name,5,sz-5);}
 function drawWorldGate(c,n,t){c.save();c.translate(n.x,n.y);c.fillStyle='rgba(0,0,0,.3)';ell(c,0,10,30,6);
   for(const s of [-1,1]){const g=c.createLinearGradient(s*22,0,s*16,0);g.addColorStop(0,'#5a3a22');g.addColorStop(1,'#8a5a32');c.fillStyle=g;c.fillRect(s*19-3,-30,6,40);}
   c.fillStyle='#6b4526';c.fillRect(-26,-36,52,8);c.fillStyle='#4a2c18';c.fillRect(-26,-30,52,2);
@@ -2180,6 +2223,7 @@ $('mpJoinForm').onsubmit=ev=>{ev.preventDefault();mpJoin($('mpCode').value);};
 $('mpBack').onclick=()=>{if(G){show(null);$('hud').hidden=false;paused=false;}else show('title');};
 $('mpBtn').onclick=()=>{if(!S&&HEROES.length===1){HI=0;S=migrate(HEROES[0]);}mpStatus(S?'Tu joues avec '+S.name+'.':"Lance d'abord ton héros avec « Jouer », puis ouvre le sac et touche « Multi ».");show('mp');};
 $('mpInvBtn').onclick=()=>{closeInv();paused=true;mpTradeRefresh();mpStatus(NET.code?(NET.host?'Code de la partie : ':'Connecté à la partie ')+NET.code:'');show('mp');};
+$('miniCv').onclick=()=>{if(G&&G.world)G.showMap=!G.showMap;};
 $('mapBtn').onclick=()=>{if(G&&G.world)G.showMap=!G.showMap;};
 $('hudMenuBtn').onclick=()=>$('menuBtn').onclick();
 $('menuBtn').onclick=()=>{if(!$('inv').hidden)closeInv();modal('Retour au menu principal ?',(NET.host||NET.guest)?'Ta progression est sauvegardée. La partie à plusieurs sera fermée.':'Ta progression est sauvegardée. Tu pourras changer de héros.','Menu principal',()=>goMenu(),true);};
@@ -2391,7 +2435,7 @@ function hud(){const P=G.P,st=stats();
   $('fyb').style.width=(S.cls==='demoniste'?(G.pet?Math.max(0,G.pet.hp/G.pet.max*100):0):P.fury)+'%';$('furyBtn').classList.toggle('ready',S.cls==='demoniste'?(G.petCd||0)<=0:P.fury>=100);
   $('furyLbl').textContent=S.cls==='demoniste'?(G.pet&&PETS[G.pet.type]?petName(G.pet)+' · niv. '+(G.pet.lvl||1):(S.pet&&S.pet.ko>0?'Familier K.O.':'Aucun familier')):CL().power;$('heroName').textContent=S.name||'Pavel';
   $('xpb').style.width=(S.xp/need(S.lvl)*100)+'%';$('lvl').textContent='Niv. '+S.lvl;
-  $('gold').textContent=S.gold+' or';$('potN').textContent=S.potions;$('dlv').textContent=G.home?'Maison de Pavel':G.town?'La Maison Bernissart':BIO().name+' · '+DIF().name;$('keyInd').hidden=!G.hasKey;
+  $('gold').textContent=S.gold+' or';$('potN').textContent=S.potions;$('dlv').textContent=G.home?'Maison de Pavel':G.town?'La Maison Bernissart':G.world?'Pavelmonde · '+({glace:'Terres gelées',foret:'Forêt',town:'Plaines'}[G.wb]||''):(G.caveName||BIO().name)+' · '+DIF().name;$('keyInd').hidden=!G.hasKey;
   const b=G.enemies.find(e=>e.type==='boss'&&e.aggro);$('bossbar').hidden=!b;if(b){$('bossName').textContent=BIO().boss.name;$('bossb').style.width=(b.hp/b.max*100)+'%';}}
 
 // ================= Boucle
@@ -2399,7 +2443,7 @@ let last=0,uiT=0;
 function frame(ts){requestAnimationFrame(frame);pollPad();const dt=Math.min(0.05,last?(ts-last)/1000:0);last=ts;uiT+=dt;
   if(G&&G.client)clientUpdate(dt);else if(G&&(!paused||(NET.host&&NET.P2)))update(dt);
   if(!$('stage').hidden){render();if(G&&G.world){cx.setTransform(DPR,0,0,DPR,0,0);drawWorldMap();}}
-  if(G&&!$('hud').hidden){hud();townHud();}
+  if(G&&!$('hud').hidden){hud();townHud();drawMini();}
   if(!$('shop').hidden&&$('shopCv'))drawPreview($('shopCv'),S.look,S.eq,'down',uiT);
   if(!$('title').hidden)drawPreview($('titleCv'),S?S.look:DEFAULT_LOOK,S?S.eq:{arme:starterSword()},'down',uiT,true);
   if(!$('creator').hidden)drawPreview($('crCv'),crLook,crEq(),CR_DIRS[crDir],uiT);
