@@ -84,7 +84,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .res{display:flex;flex-direction:column;align-items:flex-end;gap:6px;font-weight:800;font-size:13px;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
 .res .gold{color:var(--gold)}
 .res .key{color:#ffd84a}
-#bagBtn{pointer-events:auto;border:1px solid #6b5a3a;background:#2a2016cc;border-radius:10px;padding:8px 14px;font-weight:800;color:#f6e2c4}
+#bagBtn,#hudMenuBtn{pointer-events:auto;border:1px solid #6b5a3a;background:#2a2016cc;border-radius:10px;padding:8px 14px;font-weight:800;color:#f6e2c4}
 .aud{display:flex;gap:6px}
 .aud button{pointer-events:auto;border:1px solid #4a3d52;background:#1a141fcc;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:800;color:#f0e7d6}
 .aud button[aria-pressed=false]{color:#7a6f84;text-decoration:line-through}
@@ -1851,6 +1851,7 @@ $('potBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(G)drinkPoti
 window.addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT')return;
   if(e.code==='KeyI'||e.code==='Tab'){e.preventDefault();if(!$('inv').hidden)closeInv();else if(!paused)openInv();return;}
   if(e.code==='Escape'&&!$('inv').hidden){closeInv();return;}
+  if(e.code==='Escape'&&!paused&&$('modal').hidden){$('menuBtn').onclick();return;}
   if(paused)return;keys[e.code]=true;
   if(e.code==='KeyT')castTP();if(e.code==='KeyC')toggleHorse();if((e.code==='KeyE'||e.code==='Enter')&&G.near)interact(G.near);if(e.code==='KeyF'||e.code==='KeyK')useFury();if(e.code==='KeyR')drinkPotion();
   if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();});
