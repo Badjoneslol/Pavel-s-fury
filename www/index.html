@@ -261,6 +261,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     </div>
     <div class="res">
       <button id="bagBtn">Sac</button>
+      <button id="hudMenuBtn" type="button">Menu</button>
       <button id="tpBtn" hidden>Portail ville</button>
       <button id="horseBtn" hidden>Cheval</button>
       <div class="aud"><button id="musBtn" aria-pressed="true">Musique</button><button id="sfxBtn" aria-pressed="true">Sons</button></div>
@@ -1527,7 +1528,8 @@ $('mpJoinForm').onsubmit=ev=>{ev.preventDefault();mpJoin($('mpCode').value);};
 $('mpBack').onclick=()=>{if(G){show(null);$('hud').hidden=false;paused=false;}else show('title');};
 $('mpBtn').onclick=()=>{if(!S&&HEROES.length===1){HI=0;S=migrate(HEROES[0]);}mpStatus(S?'Tu joues avec '+S.name+'.':"Lance d'abord ton héros avec « Jouer », puis ouvre le sac et touche « Multi ».");show('mp');};
 $('mpInvBtn').onclick=()=>{closeInv();paused=true;mpStatus(NET.code?(NET.host?'Code de la partie : ':'Connecté à la partie ')+NET.code:'');show('mp');};
-$('menuBtn').onclick=()=>{closeInv();modal('Retour au menu principal ?',(NET.host||NET.guest)?'Ta progression est sauvegardée. La partie à plusieurs sera fermée.':'Ta progression est sauvegardée. Tu pourras changer de héros.','Menu principal',()=>goMenu(),true);};
+$('hudMenuBtn').onclick=()=>$('menuBtn').onclick();
+$('menuBtn').onclick=()=>{if(!$('inv').hidden)closeInv();modal('Retour au menu principal ?',(NET.host||NET.guest)?'Ta progression est sauvegardée. La partie à plusieurs sera fermée.':'Ta progression est sauvegardée. Tu pourras changer de héros.','Menu principal',()=>goMenu(),true);};
 
 function redeem(v){const c=String(v||'').trim().toUpperCase();S.codes=S.codes||[];
   if(c!=='RURU2026'){toast('Code inconnu','#ff6b6b');return;}
