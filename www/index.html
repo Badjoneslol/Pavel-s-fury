@@ -128,7 +128,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .statline{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;font-size:13.5px;color:var(--dim);font-variant-numeric:tabular-nums}
 .statline b{color:var(--ink)}
 .bag-head{display:flex;justify-content:space-between;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:800;max-width:460px;width:100%;margin-inline:auto}
-.bag{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-width:460px;width:100%;margin-inline:auto}
+.bag{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-width:460px;width:100%;margin-inline:auto;max-height:min(58vh,520px);overflow-y:auto;padding-right:2px}
 .cell{aspect-ratio:1;max-width:100%}
 .detail{max-width:460px;width:100%;margin-inline:auto;border:1px solid var(--line);border-radius:12px;background:#0b080e;padding:12px 14px;min-height:90px}
 .detail .hint{color:var(--dim);margin:0}
@@ -1213,16 +1213,21 @@ $('shopClose').onclick=closeShop;
 function reroll(it,k){ensureBase(it);const old=it.stats[k],kk=1+it.ilvl*0.3;it.bst[k]=0;const nk=pick(Object.keys(STATN));
   const v=Math.max(1,Math.round({atk:2*kk,def:2*kk,hp:9*kk,spd:5,crit:3+kk*0.6}[nk]*[1,1.2,1.4,1.7][it.rarity]*rand(0.8,1.25)));
   it.bst[nk]=(it.bst[nk]||0)+v;recompute(it);dropIcon(it);toast(`${STATN[k]} ${fmt(k,old)} → ${STATN[nk]} ${fmt(nk,it.stats[nk])}`,'#cbb8ff');}
+const BAGS=[['Sac en cuir',800],['Sac de voyageur',2500],['Sac d\'aventurier',7000],['Sac sans fond',18000]];
+function bagMax(){return 20+10*((S&&S.bags)||0);}
 function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
-  $('shopTitle').textContent=n.name;$('shopSub').textContent=n.role;$('shopGold').textContent=`${S.gold} or · sac ${S.bag.length}/20 · ${S.potions} potions`;
+  $('shopTitle').textContent=n.name;$('shopSub').textContent=n.role;$('shopGold').textContent=`${S.gold} or · sac ${S.bag.length}/${bagMax()} · ${S.potions} potions`;
   let h='';const dis=b=>b?'disabled':'';
-  if(shopId==='shop'){const pp=potionCost();
+  if(shopId==='shop'){const pp=potionCost(),nb=S.bags||0;
+    h+=`<span class="ex-lab">Sacs (agrandissent l'inventaire)</span>`;
+    if(nb<BAGS.length){const B=BAGS[nb];h+=`<div class="row"><div class="sw" style="width:38px;height:38px;border-radius:10px;background:radial-gradient(circle at 40% 35%,#c9915a,#5a3a22)"></div><div class="info"><b>${B[0]}</b><small>+10 places · sac actuel ${bagMax()} places → ${bagMax()+10}</small></div><button class="btn" data-act="bag" ${dis(S.gold<B[1])}>${fmtGold(B[1])} or</button></div>`;}
+    else h+=`<p class="hint">Ton sac est au maximum : ${bagMax()} places.</p>`;
     h+=`<span class="ex-lab">Potions</span><div class="row"><div class="potico"></div><div class="info"><b>Potion de soin</b><small>Rend la moitié de la vie · ${S.potions}/9 en réserve</small></div><button class="btn" data-act="potion" ${dis(S.potions>=9||S.gold<pp)}>${pp} or</button></div>`;
     h+=`<span class="ex-lab">Armes légendaires</span>`;
-    for(const L of LEGSHOP)h+=itemRow(legPreview(L.id),`<button class="btn" data-act="leg" data-arg="${L.id}" ${dis(S.gold<L.price||S.bag.length>=20)}>${fmtGold(L.price)} or</button>`,L.desc);
+    for(const L of LEGSHOP)h+=itemRow(legPreview(L.id),`<button class="btn" data-act="leg" data-arg="${L.id}" ${dis(S.gold<L.price||S.bag.length>=bagMax())}>${fmtGold(L.price)} or</button>`,L.desc);
     h+=`<span class="ex-lab">Code secret</span><form class="row codeform" id="codeForm"><div class="info"><b>Mot de passe</b><small>Un code secret peut débloquer une récompense.</small></div><input id="codeIn" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" maxlength="20" aria-label="Code secret"><button class="btn" type="submit">Valider</button></form>`;
     h+=`<span class="ex-lab">Étal du jour, renouvelé après chaque expédition</span>`;
-    S.stock.forEach((it,i)=>{const pr=itemValue(it)*4;h+=itemRow(it,`<button class="btn" data-act="buy" data-arg="${i}" ${dis(S.gold<pr||S.bag.length>=20)}>${pr} or</button>`);});
+    S.stock.forEach((it,i)=>{const pr=itemValue(it)*4;h+=itemRow(it,`<button class="btn" data-act="buy" data-arg="${i}" ${dis(S.gold<pr||S.bag.length>=bagMax())}>${pr} or</button>`);});
     if(!S.stock.length)h+='<p class="hint">Tout est vendu. Reviens après ta prochaine expédition.</p>';
     const com=S.bag.filter(it=>it.rarity===0),cv=com.reduce((a,it)=>a+itemValue(it),0);
     h+=`<span class="ex-lab">Rachat</span><div class="row"><div class="info"><b>Objets communs du sac</b><small>${com.length} objet${com.length>1?'s':''}</small></div><button class="btn" data-act="sellcom" ${dis(!com.length)}>Vendre +${cv} or</button></div>`;}
@@ -1238,7 +1243,7 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
       for(const k of Object.keys(STATN))if(it.stats[k])h+=`<button class="btn wide" data-act="reroll" data-arg="${k}" ${dis(S.gold<c)}>Relancer ${STATN[k]} ${fmt(k,it.stats[k])} · ${c} or</button>`;}}
   else if(shopId==='gamble'){const gc=gambleCost();
     h+='<p class="hint">Choisis un emplacement : Arthur te vend un objet mystère d\'un niveau au-dessus du tien. Environ 1 chance sur 22 d\'être légendaire.</p><div class="pills">';
-    h+=SLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=20)}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
+    h+=SLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=bagMax())}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
     if(lastGamble)h+='<span class="ex-lab">Ton dernier achat</span>'+itemRow(lastGamble);}
   else if(shopId==='dye'){
     h+='<canvas id="shopCv" class="shop-cv"></canvas><p class="hint">Chaque teinture coûte 25 or. Revenir à la couleur d\'origine est gratuit. La tunique et la cape se changent dans « Apparence ».</p>';
@@ -1944,7 +1949,7 @@ function talkQuest(n){const qi=n.qi,r=qRec(qi);S.quests=S.quests||[];
   if(dl){const q=dl;q.n=1;qDone(q);modal(n.short,`Une lettre de ${q.giver} ? Merci, héros ! Dis-lui que je vais bien.`,'Avec plaisir',()=>{paused=false;});return;}
   if(r.state==='active'){const q=S.quests.find(x=>x.npc===qi);
     if(!q){r.state='new';}else if(q.done){S.quests=S.quests.filter(x=>x!==q);r.i++;r.state='new';S.gold+=q.gold;addXp(q.xp);let it=null;
-      if(q.item){it=genItem(S.lvl+S.diff,rollRar(.3));if(S.bag.length<20)S.bag.push(it);else G.loot.push({kind:'item',item:it,x:G.P.x,y:G.P.y+12,t:0});}
+      if(q.item){it=genItem(S.lvl+S.diff,rollRar(.3));if(S.bag.length<bagMax())S.bag.push(it);else G.loot.push({kind:'item',item:it,x:G.P.x,y:G.P.y+12,t:0});}
       SND.gold();sparks(G.P.x,G.P.y-14,'#ffd84a',24);save();
       modal(n.short,`Merci, ${S.name} ! Voici ta récompense : ${q.gold} or, ${q.xp} XP${it?' et « '+it.name+' »':''}.`,'Merci',()=>{paused=false;});return;}
     else{modal(n.short,`${q.title} : ${q.n}/${q.need}. ${q.kind==='deliver'?'As-tu remis ma lettre ?':'Je compte sur toi !'}`,'Je m\'en occupe',()=>{paused=false;});return;}}
@@ -2228,7 +2233,7 @@ async function mpJoin(code){if(!S){mpStatus("Choisis d'abord un héros dans le m
     c.on('data',onMsg);c.on('close',()=>{if(!NET.guest)return;toast("L'hôte a quitté la partie",'#ff6b6b');goMenu();});
     setTimeout(()=>{if(!NET.guest)mpStatus('Aucune partie trouvée avec ce code. Vérifie le code et que l\'hôte est bien connecté.');},9000);});
   peer.on('error',e=>mpStatus('Erreur réseau : '+(e.type||e.message)));}
-function sendMe(){NET.send({t:'me',name:S.name,cls:S.cls,look:S.look,eq:S.eq,lvl:S.lvl,bagFull:S.bag.length>=20,pet:S.pet||null});}
+function sendMe(){NET.send({t:'me',name:S.name,cls:S.cls,look:S.look,eq:S.eq,lvl:S.lvl,bagFull:S.bag.length>=bagMax(),pet:S.pet||null});}
 // L'hôte joue les actions de l'invité avec les statistiques de l'invité
 function asGuest(fn){const sS=S,sP=G.P,sPet=G.pet,sCd=G.petCd,sPl=G.petPlaced,sPa=paused,Q=NET.P2;
   NET.gs.diff=S.diff;NET.gs.zone=S.zone;NET.gs.dl=S.dl;NET.realS=S;NET.realP=G.P;
@@ -2288,7 +2293,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
     else if(m.t==='act'&&NET.P2&&!NET.P2.dead&&G){
       if(m.k==='fury'&&NET.gs.cls!=='demoniste')asGuest(()=>useFury());
       else if(m.k==='drop'&&m.item&&m.item.slot)dropAt(NET.P2,m.item);
-      else if(m.k==='gift'&&m.item&&m.item.slot){if(S.bag.length<20){S.bag.push(m.item);SND.item(m.item.rarity);}else dropAt(G.P,m.item);toast(NET.gs.name+' te donne '+m.item.name+(S.bag.length>=20?' (posé au sol, sac plein)':''),'#7fe3ff');save();}
+      else if(m.k==='gift'&&m.item&&m.item.slot){if(S.bag.length<bagMax()){S.bag.push(m.item);SND.item(m.item.rarity);}else dropAt(G.P,m.item);toast(NET.gs.name+' te donne '+m.item.name+(S.bag.length>=bagMax()?' (posé au sol, sac plein)':''),'#7fe3ff');save();}
       else if(m.k==='gold'&&m.n>0){S.gold+=Math.floor(m.n);SND.gold();toast(NET.gs.name+' te donne '+Math.floor(m.n)+' or','#d9b24a');save();}
       else if(m.k==='pot')NET.P2.hp=Math.min(NET.P2.max,NET.P2.hp+NET.P2.max*0.5);
       else if(m.k==='pet'&&PETS[m.type]&&(NET.P2.petCd||0)<=0)asGuest(()=>{S.pet=m.pet&&m.pet.q?petCalc({...m.pet,ko:0}):rollPet(m.type);G.pet=null;G.petCd=12;spawnPet();sparks(G.pet.x,G.pet.y-6,'#b08cff',20);});}
@@ -2296,7 +2301,7 @@ function onMsg(m){if(!m||typeof m!=='object')return;
   if(!NET.guest)return;
   if(m.t==='scene')applyScene(m);else if(m.t==='snap')applySnap(m);
   else if(m.t==='av'){NET.hostAv=m;if(G&&G.P2){G.P2.look=m.look;G.P2.eq=m.eq;G.P2.name=m.name;}}
-  else if(m.t==='give'){if(m.gift)toast(m.gift+' te donne '+m.item.name,'#7fe3ff');if(S.bag.length<20&&m.item){S.bag.push(m.item);SND.item(m.item.rarity);if(G)txt(G.P.x,G.P.y-44,m.item.name,RAR[m.item.rarity].c,m.item.rarity>=2);save();}}
+  else if(m.t==='give'){if(m.gift)toast(m.gift+' te donne '+m.item.name,'#7fe3ff');if(S.bag.length<bagMax()&&m.item){S.bag.push(m.item);SND.item(m.item.rarity);if(G)txt(G.P.x,G.P.y-44,m.item.name,RAR[m.item.rarity].c,m.item.rarity>=2);save();}}
   else if(m.t==='gold'){if(m.gift)toast(m.gift+' te donne '+m.n+' or','#d9b24a');S.gold+=m.n;SND.gold();if(G)txt(G.P.x,G.P.y-44,'+'+m.n+' or','#d9b24a');save();}
   else if(m.t==='potion'){if(S.potions<9)S.potions++;save();}
   else if(m.t==='xp'){if(G){addXp(m.n);petGainXp(m.n);}}
@@ -2364,18 +2369,19 @@ $('menuBtn').onclick=()=>{if(!$('inv').hidden)closeInv();modal('Retour au menu p
 function redeem(v){const c=String(v||'').trim().toUpperCase();S.codes=S.codes||[];
   if(c!=='RURU2026'){toast('Code inconnu','#ff6b6b');return;}
   if(S.codes.includes(c)){toast('Ce code a déjà été utilisé','#ff6b6b');return;}
-  if(S.bag.length>=20){toast('Sac plein : fais de la place avant','#ff6b6b');return;}
+  if(S.bag.length>=bagMax()){toast('Sac plein : fais de la place avant','#ff6b6b');return;}
   S.codes.push(c);const it=makeElemSword('master');S.bag.push(it);SND.item(3);toast('Code accepté : la Master Sword rejoint ton sac !','#8fb8ff');save();renderShop();}
 function shopAct(a,arg){
-  if(a==='leg'){const L=LEGSHOP.find(x=>x.id===arg);if(L&&S.bag.length<20&&pay(L.price)){const it=makeElemSword(arg);S.bag.push(it);SND.item(3);toast(it.name+' rejoint ton sac !','#ff9b2e');}}
+  if(a==='leg'){const L=LEGSHOP.find(x=>x.id===arg);if(L&&S.bag.length<bagMax()&&pay(L.price)){const it=makeElemSword(arg);S.bag.push(it);SND.item(3);toast(it.name+' rejoint ton sac !','#ff9b2e');}}
   else if(a==='potion'){if(S.potions<9&&pay(potionCost()))S.potions++;}
-  else if(a==='buy'){const it=S.stock[+arg];if(it&&S.bag.length<20&&pay(itemValue(it)*4)){S.bag.push(it);S.stock.splice(+arg,1);SND.item(it.rarity);}}
+  else if(a==='bag'){const nb=S.bags||0;if(nb<BAGS.length&&pay(BAGS[nb][1])){S.bags=nb+1;SND.item(2);toast(BAGS[nb][0]+' : ton sac passe à '+bagMax()+' places !','#ffd84a');}}
+  else if(a==='buy'){const it=S.stock[+arg];if(it&&S.bag.length<bagMax()&&pay(itemValue(it)*4)){S.bag.push(it);S.stock.splice(+arg,1);SND.item(it.rarity);}}
   else if(a==='sellcom'){let g=0;S.bag=S.bag.filter(it=>{if(it.rarity===0){g+=itemValue(it);return false;}return true;});S.gold+=g;SND.gold();toast(`+${g} or`,'#d9b24a');}
   else if(a==='forge'){const it=findItem(arg);if(it&&(it.up||0)<10&&pay(forgeCost(it))){ensureBase(it);it.up++;recompute(it);SND.level();toast(`${iname(it)} : amélioration réussie`,'#ffd84a');}}
   else if(a==='mpick')shopSel=arg;
   else if(a==='mback')shopSel=null;
   else if(a==='reroll'){const it=findItem(shopSel);if(it&&pay(mystCost(it))){reroll(it,arg);SND.item(2);}}
-  else if(a==='gamble'){if(S.bag.length<20&&pay(gambleCost())){const it=genItem(S.lvl+1,rollRar(0.25),arg);S.bag.push(it);lastGamble=it;SND.item(it.rarity);if(it.rarity>=3)toast(RAR[it.rarity].n.toUpperCase()+' : '+it.name,RAR[it.rarity].c);}}
+  else if(a==='gamble'){if(S.bag.length<bagMax()&&pay(gambleCost())){const it=genItem(S.lvl+1,rollRar(0.25),arg);S.bag.push(it);lastGamble=it;SND.item(it.rarity);if(it.rarity>=3)toast(RAR[it.rarity].n.toUpperCase()+' : '+it.name,RAR[it.rarity].c);}}
   else if(a==='dye'){const [id,c]=arg.split('|');const it=findItem(id);if(it){if(c){if(it.dye!==c&&pay(25)){it.dye=c;dropIcon(it);}}else{delete it.dye;dropIcon(it);}}}
   save();renderShop();}
 
@@ -2451,7 +2457,7 @@ function update(dt){
     if(G.hasKey){for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const tx=Math.floor((P.x+i*(P.r+6))/TS),ty=Math.floor((P.y+j*(P.r+6))/TS);
       if(tileAt(tx,ty)==='D'){for(let q=0;q<map.length;q++)if(map[q]==='D')map[q]='.';G.hasKey=false;renderMap();if(NET.host)NET.send({t:'map',map:map.join('')});toast("La porte s'ouvre… "+bossName()+" t'attend",'#cbb8ff');G.shake=6;}}}
     for(const l of G.loot){if(l.taken)continue;l.t+=dt;if(l.t<0.35)continue;if(Math.hypot(l.x-P.x,l.y-P.y)>20)continue;
-      if(l.kind==='item'){if(S.bag.length>=20){if(G.msgCd<=0){toast('Sac plein : vends ou équipe des objets','#ff6b6b');G.msgCd=3;}continue;}
+      if(l.kind==='item'){if(S.bag.length>=bagMax()){if(G.msgCd<=0){toast('Sac plein : vends ou équipe des objets','#ff6b6b');G.msgCd=3;}continue;}
         S.bag.push(l.item);l.taken=true;SND.item(l.item.rarity);txt(P.x,P.y-44,l.item.name,RAR[l.item.rarity].c,l.item.rarity>=2);if(l.item.rarity>=3){toast(RAR[l.item.rarity].n+' : '+l.item.name,RAR[l.item.rarity].c);G.shake=6;}}
       else if(l.kind==='gold'){const gn=Math.round(l.n*(1+(st.pow.goldFind||0)/100));S.gold+=gn;l.taken=true;SND.gold();txt(P.x,P.y-44,'+'+gn+' or','#d9b24a');}
       else if(l.kind==='potion'){if(S.potions>=9)continue;S.potions++;l.taken=true;txt(P.x,P.y-44,'Potion','#ff7a7a');}
@@ -2608,7 +2614,7 @@ function onDeath(){const lost=Math.floor(S.gold*0.25);S.gold-=lost;save();
 function openWinPortal(e){const y=hits(e.x,e.y-56,10)?e.y:e.y-56;const n={id:'winportal',npc:true,short:'Maison Bernissart',talk:'Retourner à la Maison Bernissart',x:e.x,y,col:e.pal.eye,aura:e.pal.aura,ph:0};
   G.npcs=G.npcs||[];G.npcs.push(n);if(NET.host)NET.send({t:'npc',n});addFx({type:'ring',x:n.x,y:n.y-16,t:0,life:.8,col:n.col,r:70});SND.cast('ice');
   toast(bossName()+' est vaincu ! Ramasse le butin, puis prends le portail quand tu veux.','#ffd84a');}
-function winReturn(){questCave(G.caveName);let n=0;for(const l of G.loot){if(l.kind==='item'&&S.bag.length<20){S.bag.push(l.item);n++;}else if(l.kind==='gold')S.gold+=l.n;}
+function winReturn(){questCave(G.caveName);let n=0;for(const l of G.loot){if(l.kind==='item'&&S.bag.length<bagMax()){S.bag.push(l.item);n++;}else if(l.kind==='gold')S.gold+=l.n;}
   S.dl++;DG=null;save();goTown();toast(n?`Victoire ! ${n} objet${n>1?'s':''} laissé${n>1?'s':''} au sol rangé${n>1?'s':''} dans ton sac`:'Victoire ! Bienvenue à la Maison Bernissart','#ffd84a');}
 function drawWinPortal(c,n,t){const col=n.col||'#9fd8ff',au=n.aura||'160,200,255';c.save();c.translate(n.x,n.y);c.fillStyle='rgba(0,0,0,.3)';ell(c,0,8,24,6);
   const a=c.createRadialGradient(0,-16,4,0,-16,44);a.addColorStop(0,`rgba(${au},.45)`);a.addColorStop(1,`rgba(${au},0)`);c.fillStyle=a;circ(c,0,-16,44);
@@ -2618,7 +2624,7 @@ function drawWinPortal(c,n,t){const col=n.col||'#9fd8ff',au=n.aura||'160,200,255
   for(let i=0;i<8;i++){const q=(t*.5+i/8)%1,an=i*.8;c.fillStyle=hexA(col,1-q);circ(c,Math.cos(an)*(20-q*14),-16+Math.sin(an)*(28-q*20),1.4);}
   c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText('Maison Bernissart',0,-50);c.fillStyle=col;c.fillText('Maison Bernissart',0,-50);c.restore();}
 function onWin(){questCave(G.caveName);save();modal(bossName()+' est vaincu',`Le butin restant est rangé dans ton sac. Le portail te ramène à la Maison Bernissart, où les artisans t'attendent.`,'Retour à la Maison Bernissart',
-  ()=>{for(const l of G.loot)if(l.kind==='item'&&S.bag.length<20)S.bag.push(l.item);else if(l.kind==='gold')S.gold+=l.n;S.dl++;DG=null;save();goTown();});}
+  ()=>{for(const l of G.loot)if(l.kind==='item'&&S.bag.length<bagMax())S.bag.push(l.item);else if(l.kind==='gold')S.gold+=l.n;S.dl++;DG=null;save();goTown();});}
 
 // Création
 let crLook={...DEFAULT_LOOK},crMode='new',crDir=0,crCls='guerrier';const CR_DIRS=['down','right','up','left'];
@@ -2651,9 +2657,9 @@ function renderInv(){const st=stats();
   document.querySelectorAll('.slot').forEach(el=>{const k=el.dataset.slot,it=S.eq[k];el.innerHTML=slotHTML(it,`<em>${SLOTN[k]}</em>`);
     el.style.borderColor=it?RAR[it.rarity].c:'';el.classList.toggle('sel',!!sel&&sel.from==='eq'&&sel.slot===k);el.setAttribute('aria-label',it?it.name:SLOTN[k]+' vide');});
   $('statLine').innerHTML=`<span>Niv. <b>${S.lvl}</b></span><span>Attaque <b>${st.atk}</b></span><span>Défense <b>${st.def}</b></span><span>Vie <b>${st.hp}</b></span><span>Vitesse <b>+${st.spd} %</b></span><span>Critique <b>${st.crit} %</b></span><span>Esquive <b>${st.esq} %</b></span><span>Armure <b>-${Math.round(armorRed(st.def)*100)} %</b></span><span>Rés. <b style="color:#ff9b4a">${st.resF}</b>/<b style="color:#7fd0ff">${st.resG}</b>/<b style="color:#ffe25a">${st.resB}</b> %</span>${Object.keys(st.pow).length?'<span style="flex-basis:100%;color:#d06fff">✦ '+Object.keys(st.pow).map(k=>POWN[k][0]+' '+st.pow[k]).join(' · ')+'</span>':''}`;
-  $('bagCount').textContent=`${S.bag.length} / 20`;$('goldInv').textContent=`${S.gold} or · ${S.potions} potions`;
+  $('bagCount').textContent=`${S.bag.length} / ${bagMax()}`;$('goldInv').textContent=`${S.gold} or · ${S.potions} potions`;
   const bag=$('bag');bag.innerHTML='';
-  for(let i=0;i<20;i++){const it=S.bag[i];const b=document.createElement('button');b.className='cell';b.id='bag-'+i;
+  for(let i=0;i<bagMax();i++){const it=S.bag[i];const b=document.createElement('button');b.className='cell';b.id='bag-'+i;
     if(it){b.innerHTML=slotHTML(it,'');b.style.borderColor=hexA(RAR[it.rarity].c,0.85);b.setAttribute('aria-label',it.name);b.onclick=()=>{sel={from:'bag',i};renderInv();};}
     else{b.disabled=true;b.setAttribute('aria-label','Case vide');}
     if(sel&&sel.from==='bag'&&sel.i===i)b.classList.add('sel');bag.appendChild(b);}
@@ -2671,7 +2677,7 @@ function renderDetail(){const d=$('detail');const it=sel?(sel.from==='eq'?S.eq[s
     $('sellBtn').onclick=()=>{S.gold+=itemValue(it);S.bag.splice(sel.i,1);sel=null;save();renderInv();};
     if($('giveBtn'))$('giveBtn').onclick=()=>{if(giveItem(it)){S.bag.splice(sel.i,1);sel=null;save();renderInv();}};
     $('dropBtn').onclick=()=>{S.bag.splice(sel.i,1);sel=null;dropItem(it);save();renderInv();toast('Objet posé au sol','#f6e2c4');};}
-  else $('unBtn').onclick=()=>{if(S.bag.length>=20){toast('Sac plein','#ff6b6b');return;}const fix=keepHp();S.bag.push(it);S.eq[sel.slot]=null;fix();sel={from:'bag',i:S.bag.length-1};save();renderInv();};}
+  else $('unBtn').onclick=()=>{if(S.bag.length>=bagMax()){toast('Sac plein','#ff6b6b');return;}const fix=keepHp();S.bag.push(it);S.eq[sel.slot]=null;fix();sel={from:'bag',i:S.bag.length-1};save();renderInv();};}
 document.querySelectorAll('.slot').forEach(el=>el.onclick=()=>{if(S.eq[el.dataset.slot]){sel={from:'eq',slot:el.dataset.slot};renderInv();}});
 $('bagBtn').onclick=openInv;$('invClose').onclick=closeInv;$('invClose2').onclick=closeInv;$('lookBtn').onclick=()=>openCreator('edit');
 
