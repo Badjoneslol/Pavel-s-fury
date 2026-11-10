@@ -1125,7 +1125,7 @@ function drawNpc(c,n,t){if(n.id==='portal'){drawPortal(c,n,t);return;}if(n.id===
   if(SHADOWS)drawNpcLabel(c,n,t);}
 function drawNpcLabel(c,n,t){c.font="800 10px 'Alegreya Sans',sans-serif";c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(n.short,n.x,n.y-40);c.fillStyle=n.id==='quest'?'#f6e2c4':'#ffd84a';c.fillText(n.short,n.x,n.y-40);if(n.id==='quest')drawQMark(c,n,t);}
 function townNear(){if(!G||!(G.town||G.home||G.world)||G.P.dead)return null;let best=null,bd=46;for(const n of G.npcs){const d=Math.hypot(n.x-G.P.x,n.y-G.P.y);if(d<bd){bd=d;best=n;}}return best;}
-function townHud(){questTrack();$('tpBtn').hidden=!!(G.town||G.home)||G.P.dead||!!G.client;$('mpBadge').hidden=!(NET.host||NET.guest);if(NET.host||NET.guest)$('mpBadge').textContent=(NET.host?(NET.P2?'2 joueurs · ':'En attente · '):'Invité · ')+NET.code;const cb=$('castBar');cb.hidden=!G.tpCast;if(G.tpCast)$('castFill').style.width=Math.min(100,G.tpCast.t/G.tpCast.dur*100)+'%';const hb=$('horseBtn');hb.hidden=!(G.town||G.world);$('mapBtn').hidden=!G.world;if(!(G.town||G.world)&&G.P.horse)G.P.horse=false;const hl=G.P.horse?'Descendre':'Cheval';if(hb.textContent!==hl)hb.textContent=hl;G.near=townNear();const tb=$('talkBtn');tb.hidden=!G.near||paused;if(G.near){const l=G.near.id==='portal'?'Entrer dans le portail':(G.near.talk||'Parler à '+G.near.short);if(tb.textContent!==l)tb.textContent=l;}}
+function townHud(){questTrack();$('tpBtn').hidden=!!(G.town||G.home)||G.P.dead||!!G.client;$('mpBadge').hidden=!(NET.host||NET.guest);if(NET.host||NET.guest)$('mpBadge').textContent=(NET.host?(NET.P2?'2 joueurs · ':'En attente · '):'Invité · ')+NET.code;const cb=$('castBar');cb.hidden=!G.tpCast;if(G.tpCast)$('castFill').style.width=Math.min(100,G.tpCast.t/G.tpCast.dur*100)+'%';const hb=$('horseBtn');hb.hidden=!(G.town||G.world);$('mapBtn').hidden=false;if(!(G.town||G.world)&&G.P.horse)G.P.horse=false;const hl=G.P.horse?'Descendre':'Cheval';if(hb.textContent!==hl)hb.textContent=hl;G.near=townNear();const tb=$('talkBtn');tb.hidden=!G.near||paused;if(G.near){const l=G.near.id==='portal'?'Entrer dans le portail':(G.near.talk||'Parler à '+G.near.short);if(tb.textContent!==l)tb.textContent=l;}}
 function interact(n){if(!n||paused)return;if(G.client&&['portal','rportal','door','exit','wgate','cave','worldgate'].includes(n.id)){toast("C'est l'hôte qui ouvre les portails et les portes",'#7fc6ff');return;}if(n.id==='portal'){openExped();return;}if(n.id==='worldgate'){goWorld();return;}if(n.id==='wgate'){const hp=G.P.hp;goTown();G.P.x=14*TS;G.P.y=20.2*TS;G.P.hp=Math.min(hp,stats().hp);G.P.dir='up';return;}if(n.id==='cave'){enterCave(n);return;}if(n.id==='quest'){talkQuest(n);return;}if(n.id==='rportal'){backToDungeon();return;}if(n.id==='door'){enterHome();return;}if(n.id==='exit'){leaveHome();return;}openShop(n.id);}
 $('talkBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(G)interact(G.near);});
 $('exBack').onclick=()=>{if(G&&G.town){show(null);$('hud').hidden=false;paused=false;}else goTown();};
@@ -1904,6 +1904,20 @@ function questTargets(){const out=[];if(!G||!G.world||!S||!S.quests)return out;c
     else if(q.kind==='deliver'){const n=npc(q.target);if(n)out.push({x:n.x,y:n.y,col:'#ffd84a',lab:'✉'});}
     else if(q.kind==='cave'){const n=G.npcs.find(n=>n.id==='cave'&&n.short===q.cave);if(n)out.push({x:n.x,y:n.y,col:'#ff9b4a',lab:'⚔'});}}
   return out;}
+function drawBigMap(){if(!G||!G.showMap)return;if(G.world){drawWorldMap();return;}
+  const src=miniBase();miniReveal();const asp=MW/MH,maxW=W*.9,maxH=H*.8;let w=maxW,h=w/asp;if(h>maxH){h=maxH;w=h*asp;}const x0=(W-w)/2,y0=(H-h)/2+10,k=w/MW;
+  cx.fillStyle='rgba(10,8,14,.75)';cx.fillRect(0,0,W,H);cx.fillStyle='#2a2016';rr(cx,x0-10,y0-34,w+20,h+48,12);cx.fillStyle='#0d0a11';cx.fillRect(x0,y0,w,h);
+  cx.imageSmoothingEnabled=false;cx.drawImage(src,x0,y0,w,h);cx.imageSmoothingEnabled=true;
+  cx.font="700 18px 'Grenze Gotisch',Georgia,serif";cx.textAlign='center';cx.fillStyle='#f6e2c4';cx.fillText(G.town?'La Maison Bernissart':G.home?'Maison':(G.caveName||BIO().name),W/2,y0-12);
+  const at=(x,y)=>[x0+x/TS*k,y0+y/TS*k],seen=(x,y)=>!G.fog||G.seen[Math.floor(y/TS)*MW+Math.floor(x/TS)];
+  const dot=(x,y,r,col)=>{const p=at(x,y);cx.fillStyle=col;cx.beginPath();cx.arc(p[0],p[1],r,0,TAU);cx.fill();cx.strokeStyle='#000';cx.lineWidth=1;cx.stroke();};
+  if(G.fountain&&G.fountain.x>0&&seen(G.fountain.x,G.fountain.y))dot(G.fountain.x,G.fountain.y,4,'#7fc6ff');
+  for(const ch of G.chests||[])if(!ch.open&&seen(ch.x,ch.y))dot(ch.x,ch.y,4,'#ffd84a');
+  for(const l of G.loot||[])if(l.kind==='key'&&seen(l.x,l.y))dot(l.x,l.y,4.5,'#fff27a');
+  for(const e of G.enemies||[])if(e.type==='boss'&&!e.dead&&seen(e.x,e.y))dot(e.x,e.y,6,'#c88cff');
+  cx.font="800 10px 'Alegreya Sans',sans-serif";for(const n of G.npcs||[]){if(n.id==='door'||n.id==='exit')continue;const p=at(n.x,n.y);dot(n.x,n.y,3.5,n.id==='portal'||n.id==='rportal'?'#ff9b4a':'#ffd84a');cx.fillStyle='#f6e2c4';cx.fillText(n.short||'',p[0],p[1]-7);}
+  if(G.P2)dot(G.P2.x,G.P2.y,5,'#7fe3ff');dot(G.P.x,G.P.y,5+Math.sin(G.time*6)*1.5,'#ffffff');
+  cx.font="700 11px 'Alegreya Sans',sans-serif";cx.fillStyle='#bba';cx.fillText('Touche la carte ou M pour la fermer',W/2,y0+h+16);}
 function drawMini(){const el=$('miniCv');if(!el||!G||!G.P)return;const sz=el.clientWidth;if(!sz)return;const D=Math.min(2,DPR||1),px=Math.round(sz*D);if(el.width!==px){el.width=px;el.height=px;}
   const c=el.getContext('2d');c.setTransform(D,0,0,D,0,0);c.clearRect(0,0,sz,sz);c.fillStyle='rgba(13,10,17,.78)';c.fillRect(0,0,sz,sz);
   const src=miniBase();miniReveal();const P=G.P,vw=G.world?64:Math.max(MW,MH)+2,s=sz/vw;
@@ -2223,8 +2237,9 @@ $('mpJoinForm').onsubmit=ev=>{ev.preventDefault();mpJoin($('mpCode').value);};
 $('mpBack').onclick=()=>{if(G){show(null);$('hud').hidden=false;paused=false;}else show('title');};
 $('mpBtn').onclick=()=>{if(!S&&HEROES.length===1){HI=0;S=migrate(HEROES[0]);}mpStatus(S?'Tu joues avec '+S.name+'.':"Lance d'abord ton héros avec « Jouer », puis ouvre le sac et touche « Multi ».");show('mp');};
 $('mpInvBtn').onclick=()=>{closeInv();paused=true;mpTradeRefresh();mpStatus(NET.code?(NET.host?'Code de la partie : ':'Connecté à la partie ')+NET.code:'');show('mp');};
-$('miniCv').onclick=()=>{if(G&&G.world)G.showMap=!G.showMap;};
-$('mapBtn').onclick=()=>{if(G&&G.world)G.showMap=!G.showMap;};
+$('miniCv').onclick=()=>{if(G)G.showMap=!G.showMap;};
+$('stage').addEventListener('pointerdown',e=>{if(G&&G.showMap){G.showMap=false;e.stopImmediatePropagation();e.preventDefault();}},true);
+$('mapBtn').onclick=()=>{if(G)G.showMap=!G.showMap;};
 $('hudMenuBtn').onclick=()=>$('menuBtn').onclick();
 $('menuBtn').onclick=()=>{if(!$('inv').hidden)closeInv();modal('Retour au menu principal ?',(NET.host||NET.guest)?'Ta progression est sauvegardée. La partie à plusieurs sera fermée.':'Ta progression est sauvegardée. Tu pourras changer de héros.','Menu principal',()=>goMenu(),true);};
 
@@ -2442,7 +2457,7 @@ function hud(){const P=G.P,st=stats();
 let last=0,uiT=0;
 function frame(ts){requestAnimationFrame(frame);pollPad();const dt=Math.min(0.05,last?(ts-last)/1000:0);last=ts;uiT+=dt;
   if(G&&G.client)clientUpdate(dt);else if(G&&(!paused||(NET.host&&NET.P2)))update(dt);
-  if(!$('stage').hidden){render();if(G&&G.world){cx.setTransform(DPR,0,0,DPR,0,0);drawWorldMap();}}
+  if(!$('stage').hidden){render();if(G&&G.showMap){cx.setTransform(DPR,0,0,DPR,0,0);drawBigMap();}}
   if(G&&!$('hud').hidden){hud();townHud();drawMini();}
   if(!$('shop').hidden&&$('shopCv'))drawPreview($('shopCv'),S.look,S.eq,'down',uiT);
   if(!$('title').hidden)drawPreview($('titleCv'),S?S.look:DEFAULT_LOOK,S?S.eq:{arme:starterSword()},'down',uiT,true);
@@ -2541,7 +2556,7 @@ window.addEventListener('keydown',e=>{if(!G||e.target.tagName==='INPUT')return;
   if(e.code==='Escape'&&G&&G.showMap){G.showMap=false;return;}
   if(e.code==='Escape'&&!paused&&$('modal').hidden){$('menuBtn').onclick();return;}
   if(paused)return;keys[e.code]=true;
-  if(e.code==='KeyM'&&G&&G.world){G.showMap=!G.showMap;return;}if(e.code==='Escape'&&G&&G.showMap){G.showMap=false;return;}
+  if(e.code==='KeyM'&&G){G.showMap=!G.showMap;return;}if(e.code==='Escape'&&G&&G.showMap){G.showMap=false;return;}
   if(e.code==='KeyT')castTP();if(e.code==='KeyC')toggleHorse();if((e.code==='KeyE'||e.code==='Enter')&&G.near)interact(G.near);if(e.code==='KeyF'||e.code==='KeyK')useFury();if(e.code==='KeyR')drinkPotion();
   if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();});
 window.addEventListener('keyup',e=>{keys[e.code]=false;});
