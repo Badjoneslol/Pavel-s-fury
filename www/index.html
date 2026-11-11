@@ -308,7 +308,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <div class="slots"><button class="slot" data-slot="arme"></button><button class="slot" data-slot="bouclier"></button><button class="slot" data-slot="anneau"></button></div>
   </div>
   <div class="statline" id="statLine"></div>
-  <div class="bag-head"><span>Sac <span id="bagCount"></span></span><span id="goldInv"></span></div>
+  <div class="bag-head"><span>Sac <span id="bagCount"></span></span><button class="btn" id="sellAllBtn" type="button" style="padding:5px 10px;font-size:12px">Tout vendre</button><span id="goldInv"></span></div>
   <div class="bag" id="bag"></div>
   <div class="detail" id="detail"></div>
   <div class="inv-close"><button class="btn primary" id="invClose2">Fermer</button></div>
@@ -1239,7 +1239,7 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
     S.stock.forEach((it,i)=>{const pr=itemValue(it)*4;h+=itemRow(it,`<button class="btn" data-act="buy" data-arg="${i}" ${dis(S.gold<pr||S.bag.length>=bagMax())}>${pr} or</button>`);});
     if(!S.stock.length)h+='<p class="hint">Tout est vendu. Reviens après ta prochaine expédition.</p>';
     const com=S.bag.filter(it=>it.rarity===0),cv=com.reduce((a,it)=>a+itemValue(it),0);
-    h+=`<span class="ex-lab">Rachat</span><div class="row"><div class="info"><b>Objets communs du sac</b><small>${com.length} objet${com.length>1?'s':''}</small></div><button class="btn" data-act="sellcom" ${dis(!com.length)}>Vendre +${cv} or</button></div>`;}
+    h+=`<span class="ex-lab">Rachat</span><div class="row"><div class="info"><b>Objets communs du sac</b><small>${com.length} objet${com.length>1?'s':''}</small></div><button class="btn" data-act="sellcom" ${dis(!com.length)}>Vendre +${cv} or</button></div><div class="row"><div class="info"><b>Tout le sac</b><small>${S.bag.length} objet${S.bag.length>1?'s':''} · confirmation si objets rares</small></div><button class="btn" data-act="sellall" ${dis(!S.bag.length)}>Tout vendre +${S.bag.reduce((a,it)=>a+itemValue(it),0)} or</button></div>`;}
   else if(shopId==='forge'){
     h+='<p class="hint">Chaque amélioration augmente toutes les statistiques de l\'objet d\'environ 15 %. Le prix grimpe à chaque niveau.</p>';
     for(const {it,w} of allItems()){const up=it.up||0,c=forgeCost(it);
@@ -2504,6 +2504,7 @@ $('mpInvBtn').onclick=()=>{closeInv();paused=true;mpTradeRefresh();mpStatus(NET.
 $('miniCv').onclick=()=>{if(G)G.showMap=!G.showMap;};
 $('stage').addEventListener('pointerdown',e=>{if(G&&G.showMap){G.showMap=false;e.stopImmediatePropagation();e.preventDefault();}},true);
 $('mapBtn').onclick=()=>{if(G)G.showMap=!G.showMap;};
+$('sellAllBtn').onclick=()=>sellAll(()=>renderInv());
 $('hudMenuBtn').onclick=()=>$('menuBtn').onclick();
 $('menuBtn').onclick=()=>{if(!$('inv').hidden)closeInv();modal('Retour au menu principal ?',(NET.host||NET.guest)?'Ta progression est sauvegardée. La partie à plusieurs sera fermée.':'Ta progression est sauvegardée. Tu pourras changer de héros.','Menu principal',()=>goMenu(),true);};
 
@@ -2517,6 +2518,7 @@ function shopAct(a,arg){
   else if(a==='potion'){if(S.potions<9&&pay(potionCost()))S.potions++;}
   else if(a==='bag'){const nb=S.bags||0;if(nb<BAGS.length&&pay(BAGS[nb][1])){S.bags=nb+1;SND.item(2);toast(BAGS[nb][0]+' : ton sac passe à '+bagMax()+' places !','#ffd84a');}}
   else if(a==='buy'){const it=S.stock[+arg];if(it&&S.bag.length<bagMax()&&pay(itemValue(it)*4)){S.bag.push(it);S.stock.splice(+arg,1);SND.item(it.rarity);}}
+  else if(a==='sellall'){sellAll(()=>renderShop());return;}
   else if(a==='sellcom'){let g=0;S.bag=S.bag.filter(it=>{if(it.rarity===0){g+=itemValue(it);return false;}return true;});S.gold+=g;SND.gold();toast(`+${g} or`,'#d9b24a');}
   else if(a==='forge'){const it=findItem(arg);if(it&&(it.up||0)<10&&pay(forgeCost(it))){ensureBase(it);it.up++;recompute(it);SND.level();toast(`${iname(it)} : amélioration réussie`,'#ffd84a');}}
   else if(a==='mpick')shopSel=arg;
@@ -2752,8 +2754,16 @@ function drawPreview(c,look,eq,dir,t,isTitle){const {w,h}=fitCv(c);if(!w||!h)ret
 function show(id){for(const s of ['title','creator','inv','exped','shop','petPick','mp'])$(s).hidden=s!==id;}
 function startGame(){S.maxDL=Math.max(1,S.maxDL||1);S.dlvl=Math.min(curDL(),S.maxDL);newDungeon();show(null);$('hud').hidden=false;$('stage').hidden=false;paused=false;resize();toast(BIO().name+' · '+DIF().name+' : trouve la clé et terrasse '+bossName(),'#f6e2c4');save();
   setTimeout(()=>{$('hint').hidden=true;},7000);}
+// Tout vendre (avec confirmation si le sac contient des objets rares ou mieux)
+function sellAll(after){const items=S.bag.slice();if(!items.length){toast('Ton sac est vide','#f6e2c4');return;}
+  const total=items.reduce((a,it)=>a+itemValue(it),0),rares=items.filter(it=>it.rarity>=1);
+  const doit=()=>{S.gold+=total;S.bag=[];sel=null;SND.gold();goldPulse();toast(`${items.length} objet${items.length>1?'s':''} vendu${items.length>1?'s':''} : +${total} or`,'#ffd84a');save();if(after)after();};
+  if(!rares.length){doit();return;}
+  const cnt={};for(const it of rares)cnt[RAR[it.rarity].n]=(cnt[RAR[it.rarity].n]||0)+1;
+  const det=Object.entries(cnt).map(([k,v])=>v+' '+k.toLowerCase()).join(', ');
+  modal('Tout vendre ?',`Ton sac contient ${rares.length} objet${rares.length>1?'s':''} rare${rares.length>1?'s':''} ou mieux (${det}).\nTout le sac sera vendu pour ${total} or. Ton équipement porté n'est pas touché.`,'Tout vendre',()=>{doit();paused=!($('inv').hidden&&$('shop').hidden);},true);}
 function modal(title,text,btn,fn,cancel){$('mTitle').textContent=title;$('mText').textContent=text;$('mBtn').textContent=btn;$('mCancel').hidden=!cancel;$('modal').hidden=false;paused=true;
-  $('mBtn').onclick=()=>{$('modal').hidden=true;fn();};$('mCancel').onclick=()=>{$('modal').hidden=true;paused=false;};}
+  $('mBtn').onclick=()=>{$('modal').hidden=true;fn();};$('mCancel').onclick=()=>{$('modal').hidden=true;paused=!($('inv').hidden&&$('shop').hidden&&$('petPick').hidden&&$('exped').hidden);};}
 function onDeath(){const lost=Math.floor(S.gold*0.25);S.gold-=lost;save();
   modal((S.name||'Pavel')+' est tombé',`Tu perds ${lost} pièces d'or. Ton équipement est intact.`,'Se relever',()=>{const P=G.P;Object.assign(P,{...G.start,hp:stats().hp,dead:false,inv:1.5,kx:0,ky:0,fury:0});paused=false;});}
 // Portail de victoire : apparaît à la mort du boss, de la couleur du boss vaincu
