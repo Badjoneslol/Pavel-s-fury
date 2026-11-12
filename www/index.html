@@ -128,6 +128,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .inv-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .doll{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;max-width:460px;width:100%;margin-inline:auto}
 .slots{display:flex;flex-direction:column;gap:9px}
+.slots.row{flex-direction:row;justify-content:center;grid-column:1/-1;flex-wrap:wrap}
 .slot,.cell{position:relative;border:2px solid #3a3042;border-radius:10px;background:#0b080e;display:grid;place-items:center;padding:0}
 .slot{width:64px;height:64px}
 .slot em{font-style:normal;font-size:11px;color:#6f6478;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
@@ -309,7 +310,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   <div class="doll">
     <div class="slots"><button class="slot" data-slot="casque"></button><button class="slot" data-slot="armure"></button><button class="slot" data-slot="bottes"></button></div>
     <canvas id="dollCv"></canvas>
-    <div class="slots"><button class="slot" data-slot="arme"></button><button class="slot" data-slot="bouclier"></button><button class="slot" data-slot="anneau"></button></div>
+    <div class="slots"><button class="slot" data-slot="arme"></button><button class="slot" data-slot="bouclier"></button><button class="slot" data-slot="bijou"></button></div>
+    <div class="slots row"><button class="slot" data-slot="collier"></button><button class="slot" data-slot="anneau"></button><button class="slot" data-slot="anneau2"></button></div>
   </div>
   <div class="statline" id="statLine"></div>
   <div class="bag-head"><span>Sac <span id="bagCount"></span></span><button class="btn" id="sellAllBtn" type="button" style="padding:5px 10px;font-size:12px">Tout vendre</button><span id="goldInv"></span></div>
@@ -369,20 +371,23 @@ const DIFFS=[
   {name:'Cauchemar',hp:3.2,dmg:2,boost:.5,gold:3,xp:2.2},
   {name:'Tourment',hp:4.5,dmg:2.6,boost:.75,gold:4,xp:3}];
 const TS=32; let MW=64, MH=30;
-const MAT={Cuir:'#8a5a35',Fer:'#8b929b',Acier:'#bccbd8',Or:'#d9b24a',Obsidienne:'#6a4b92'};
+const MAT={Cuir:'#8a5a35',Fer:'#8b929b',Acier:'#bccbd8',Or:'#d9b24a',Argent:'#d4dbe3',Obsidienne:'#6a4b92'};
 const RAR=[{n:'Commun',c:'#e6e0d2'},{n:'Rare',c:'#5fd35f'},{n:'Très rare',c:'#4f8fff'},{n:'Légendaire',c:'#ff9b2e'},{n:'Unique',c:'#ff3a3a'},{n:'Ensemble',c:'#d06fff'}];
-const SLOTS=['arme','casque','armure','bouclier','bottes','anneau'];
-const SLOTN={arme:'Arme',casque:'Casque',armure:'Armure',bouclier:'Bouclier',bottes:'Bottes',anneau:'Anneau'};
+const SLOTS=['arme','casque','armure','bouclier','bottes','anneau','anneau2','collier','bijou'];
+const ISLOTS=['arme','casque','armure','bouclier','bottes','anneau','collier','bijou'];const JEWEL=['anneau','collier','bijou'];
+const SLOTN={arme:'Arme',casque:'Casque',armure:'Armure',bouclier:'Bouclier',bottes:'Bottes',anneau:'Anneau',anneau2:'Anneau',collier:'Collier',bijou:'Bijou'};
 const STATN={atk:'Attaque',def:'Défense',hp:'Vie',spd:'Vitesse',crit:'Critique',esq:'Esquive',resF:'Résist. feu',resG:'Résist. glace',resB:'Résist. foudre'};
 const fmt=(k,v)=>(k==='spd'||k==='crit'||k==='esq'||k.startsWith('res'))?`${v>0?'+':''}${v} %`:`${v>0?'+':''}${v}`;
 const BASES={arme:[['epee','Épée'],['hache','Hache'],['masse','Masse'],['baton','Bâton'],['arbalete','Arbalète'],['arc','Arc'],['fusil','Fusil'],['dague','Dague'],['espadon','Espadon'],['grandehache','Grande hache'],['marteau','Marteau de guerre']],casque:[['heaume','Heaume'],['casque','Casque'],['capuche','Capuche'],['bassinet','Bassinet'],['couronne','Couronne'],['cagoule','Cagoule de mailles']],
   armure:[['cuirasse','Cuirasse'],['cotte','Cotte de mailles'],['brigandine','Brigandine'],['robe','Robe de mage'],['plastron','Plastron'],['gambison','Gambison']],bouclier:[['rond','Bouclier rond'],['ecu','Écu'],['pavois','Pavois'],['targe','Targe']],
-  bottes:[['bottes','Bottes'],['jambieres','Jambières'],['solerets','Solerets'],['sandales','Sandales de voyage']],anneau:[['anneau','Anneau'],['bague','Bague'],['chevaliere','Chevalière'],['sceau','Sceau']]};
+  bottes:[['bottes','Bottes'],['jambieres','Jambières'],['solerets','Solerets'],['sandales','Sandales de voyage']],anneau:[['anneau','Anneau'],['bague','Bague'],['chevaliere','Chevalière'],['sceau','Sceau']],
+  collier:[['amulette','Amulette'],['collier','Collier'],['pendentif','Pendentif'],['torque','Torque']],bijou:[['broche','Broche'],['talisman','Talisman'],['gemme','Gemme sertie'],['relique','Relique']]};
 const SUFFIX={atk:['de la Brute','du Carnage'],def:['du Rempart','de la Tour'],hp:['du Colosse','du Sanglier'],spd:['du Vent','du Lièvre'],crit:['du Faucon','de la Vipère'],esq:['du Chat','de l\'Ombre'],resF:['de la Salamandre','des Braises'],resG:['du Yéti','de l\'Hiver'],resB:['du Paratonnerre','de l\'Orage']};
 const RARE=['de Mordsang','de Cendrebrume','de Grisfer','de Noirval','de Croc-Tempête','du Vieux Roi','de Lune-Rouge','de Ferveine','d\'Aube-Grise','de Hurlevent','des Mille Lames','de Sombrecœur','du Val Maudit','de Pierre-Lune','des Brumes','de Roc-Sanglant'];
 const LEG={arme:['Croc de Pavel','Fureur Ancestrale','Brise-Spectre','Chant du Carnage','Aube Sanglante','Éclat d\'Orage','Mort-Silence'],casque:['Heaume du Berserker','Masque du Sanglier','Visage de Pierre','Cimier de l\'Aigle'],
   armure:['Carapace du Dragon Noir','Plastron de Fer-Hurlant','Peau du Loup Blanc','Robe des Étoiles'],bouclier:['Rempart Éternel','Égide de Cendre','Mur de Givre','Bouclier du Serment'],
-  bottes:["Pas de l'Ombre",'Bottes du Vent Fou','Sabots du Bélier','Foulée Céleste'],anneau:['Œil de la Fureur','Anneau des Mille Cris','Larme de Lune','Spirale du Destin']};
+  bottes:["Pas de l'Ombre",'Bottes du Vent Fou','Sabots du Bélier','Foulée Céleste'],anneau:['Œil de la Fureur','Anneau des Mille Cris','Larme de Lune','Spirale du Destin'],
+  collier:['Cœur de Pavel','Collier des Anciens Rois','Larme du Dragon','Amulette de l\'Aube'],bijou:['Étoile de Bernissart','Talisman du Hurleur','Gemme du Néant','Relique du Phénix']};
 
 const OPT={
   skin:['#f6d3b3','#e8b48f','#c98e66','#a0684a','#7a4b33','#4f3022'],
@@ -405,7 +410,7 @@ function lookCols(l){return{skin:OPT.skin[l.skin],hs:OPT.hairStyle[l.hairStyle][
 function rollRar(b){try{if(S&&S.eq&&CLS[S.cls])b+=(stats().pow.magicFind||0)/100;}catch(e){}const x=R();if(x<0.004+b*0.012)return 4;if(x<0.012+b*0.03)return 5;if(x<0.03+b*0.1)return 3;if(x<0.12+b*0.25)return 2;if(x<0.4+b*0.3)return 1;return 0;}
 function addAff(s,a,k,m){const v={atk:2*k,def:2*k,hp:9*k,spd:5,crit:3+k*0.6,esq:2+k*.4,resF:5+k*1.5,resG:5+k*1.5,resB:5+k*1.5}[a]*m;s[a]=(s[a]||0)+Math.max(1,Math.round(v*rand(0.8,1.2)));}
 function genItem(ilvl,r,fslot){
-  let slot=fslot||pick(SLOTS);const okCls=!!(S&&CLS[S.cls]);
+  if(fslot==='anneau2')fslot='anneau';let slot=fslot||pick(ISLOTS);const okCls=!!(S&&CLS[S.cls]);
   if(!fslot&&okCls&&slot==='bouclier'&&!CL().shield&&R()<.45)slot=S.cls==='voleur'?'arme':pick(['casque','armure','bottes','anneau']);
   let [sub,base]=pick(BASES[slot]);if(slot==='arme'&&okCls&&R()<0.75){const ok=BASES.arme.filter(b=>CL().weapons.includes(b[0]));if(ok.length)[sub,base]=pick(ok);}
   if(r===undefined)r=rollRar(0);
@@ -418,10 +423,12 @@ function genItem(ilvl,r,fslot){
   if(slot==='bouclier')s.def=Math.round(3*k*m+randi(0,1));
   if(slot==='bottes'){s.spd=Math.round(4+4*m);s.def=Math.round(k*m);if(R()<.5)s.esq=Math.round(2+m*2);}
   if(slot==='anneau')addAff(s,pick(['atk','hp','crit','resF','resG','resB']),k,m);
+  if(slot==='collier'){s.hp=Math.round(6*k*m);addAff(s,pick(['crit','atk','resF','resG','resB']),k,m);}
+  if(slot==='bijou')addAff(s,pick(['crit','esq','spd','atk','def']),k,m);
   if(slot==='casque'&&R()<.35)addAff(s,pick(['resF','resG','resB']),k,m*.7);
   const affs=[];for(let i=0;i<r;i++){const a=pick(['atk','def','hp','spd','crit','esq','resF','resG','resB']);addAff(s,a,k,1);affs.push(a);}
   const mats=[['Cuir','Fer'],['Fer','Acier'],['Acier','Or'],['Or','Obsidienne']][r];
-  const mat=slot==='anneau'?(r>=2?'Or':'Fer'):(slot==='bottes'&&r<2?'Cuir':pick(mats));
+  const mat=JEWEL.includes(slot)?(r>=2?'Or':(slot==='anneau'?'Fer':'Argent')):(slot==='bottes'&&r<2?'Cuir':pick(mats));
   let name=base;
   if(r===1)name=base+' '+pick(SUFFIX[affs[0]]);
   if(r===2)name=base+' '+pick(ADJ)+' '+pick(RARE);
@@ -454,17 +461,22 @@ const UNIQUES=[
   {name:'Bottes de Sept Lieues',slot:'bottes',sub:'bottes',pow:{goldFind:25},stats:{spd:22,esq:8}},
   {name:'Anneau de Fortune',slot:'anneau',sub:'anneau',pow:{goldFind:60,magicFind:40},stats:{}},
   {name:'Anneau du Vampire',slot:'anneau',sub:'chevaliere',pow:{vamp:8},stats:{atk:1}},
-  {name:'Sceau de la Fureur',slot:'anneau',sub:'sceau',pow:{furyGain:50,crush:8},stats:{crit:10}}];
+  {name:'Sceau de la Fureur',slot:'anneau',sub:'sceau',pow:{furyGain:50,crush:8},stats:{crit:10}},
+  {name:'Amulette du Phénix',slot:'collier',sub:'amulette',pow:{regen:4,fireAura:8},stats:{hp:1.3,resF:20}},
+  {name:'Collier de Crocs',slot:'collier',sub:'torque',pow:{vamp:5,furyGain:30},stats:{crit:6}},
+  {name:'Talisman de Chance',slot:'bijou',sub:'talisman',pow:{goldFind:45,magicFind:35},stats:{esq:5}},
+  {name:'Gemme de l\'Orage',slot:'bijou',sub:'gemme',pow:{chain:18},stats:{resB:25}},
+  {name:'Relique du Berserker',slot:'bijou',sub:'relique',pow:{crush:12,furyGain:25},stats:{atk:6}}];
 const SETS={
-  spectre:{name:'Armure du Roi Spectre',col:'#9a7aff',pieces:[['casque','heaume','Couronne du Roi Spectre'],['armure','cuirasse','Linceul du Roi Spectre'],['bouclier','rond','Écu du Roi Spectre'],['bottes','bottes','Pas du Roi Spectre']],
+  spectre:{name:'Armure du Roi Spectre',col:'#9a7aff',pieces:[['casque','heaume','Couronne du Roi Spectre'],['armure','cuirasse','Linceul du Roi Spectre'],['bouclier','rond','Écu du Roi Spectre'],['bottes','bottes','Pas du Roi Spectre'],['collier','pendentif','Médaillon du Roi Spectre']],
     bonus:[[2,{pow:{frostNova:15}}],[3,{pow:{vamp:5}}],[4,{pow:{thorns:25,regen:4},stats:{def:15}}]]},
   ombre:{name:'Panoplie de l\'Ombre',col:'#5a5a7a',pieces:[['arme','dague','Murmure de l\'Ombre'],['casque','capuche','Capuche de l\'Ombre'],['armure','brigandine','Cuir de l\'Ombre'],['bottes','bottes','Semelles de l\'Ombre']],
     bonus:[[2,{pow:{crush:10}}],[3,{stats:{esq:12,crit:10}}],[4,{pow:{vamp:6,xpBoost:15}}]]},
-  archimage:{name:'Atours de l\'Archimage',col:'#4fb0ff',pieces:[['arme','baton','Sceptre de l\'Archimage'],['casque','capuche','Capuche de l\'Archimage'],['armure','robe','Robe de l\'Archimage'],['anneau','anneau','Anneau de l\'Archimage']],
+  archimage:{name:'Atours de l\'Archimage',col:'#4fb0ff',pieces:[['arme','baton','Sceptre de l\'Archimage'],['casque','capuche','Capuche de l\'Archimage'],['armure','robe','Robe de l\'Archimage'],['anneau','anneau','Anneau de l\'Archimage'],['bijou','gemme','Gemme de l\'Archimage']],
     bonus:[[2,{pow:{chain:15}}],[3,{stats:{atk:12}}],[4,{pow:{multishot:1,magicFind:30}}]]},
   dragon:{name:'Harnois du Dragon',col:'#ff6a3a',pieces:[['arme','espadon','Croc du Dragon'],['armure','cuirasse','Écailles du Dragon'],['bouclier','ecu','Aile du Dragon'],['casque','heaume','Crâne du Dragon']],
     bonus:[[2,{stats:{resF:30}}],[3,{pow:{fireAura:15}}],[4,{pow:{crush:15,vamp:5},stats:{atk:10}}]]},
-  bernissart:{name:'Trésor des Bernissart',col:'#ffd84a',pieces:[['anneau','sceau','Sceau des Bernissart'],['bottes','bottes','Bottes du Voyageur'],['casque','casque','Chapeau du Marchand']],
+  bernissart:{name:'Trésor des Bernissart',col:'#ffd84a',pieces:[['anneau','sceau','Sceau des Bernissart'],['bottes','bottes','Bottes du Voyageur'],['casque','casque','Chapeau du Marchand'],['collier','collier','Collier des Bernissart'],['bijou','broche','Broche des Bernissart']],
     bonus:[[2,{pow:{goldFind:50}}],[3,{pow:{magicFind:50,xpBoost:20}}]]}};
 function okWeapon(sub){return !(S&&CLS[S.cls])||CL().weapons.includes(sub);}
 function baseStats(slot,sub,ilvl,m){const k=1+ilvl*0.3,s={atk:0,def:0,hp:0,spd:0,crit:0,esq:0,resF:0,resG:0,resB:0};
@@ -474,6 +486,8 @@ function baseStats(slot,sub,ilvl,m){const k=1+ilvl*0.3,s={atk:0,def:0,hp:0,spd:0
   if(slot==='bouclier')s.def=Math.round(3*k*m+randi(0,1));
   if(slot==='bottes'){s.spd=Math.round(4+4*m);s.def=Math.round(k*m);}
   if(slot==='anneau')addAff(s,pick(['atk','hp','crit']),k,m);
+  if(slot==='collier'){s.hp=Math.round(6*k*m);addAff(s,pick(['crit','atk']),k,m);}
+  if(slot==='bijou')addAff(s,pick(['crit','esq','def']),k,m);
   return s;}
 function genUnique(ilvl,fslot){let pool=UNIQUES.filter(u=>(!fslot||u.slot===fslot)&&(u.slot!=='arme'||okWeapon(u.sub))&&(u.slot!=='bouclier'||!S||!CLS[S.cls]||CL().shield));if(!pool.length)pool=UNIQUES;const u=pick(pool);
   const s=baseStats(u.slot,u.sub,ilvl,2.6);for(const k in u.stats){if(u.stats[k]<3&&s[k])s[k]=Math.round(s[k]*u.stats[k]);else s[k]=(s[k]||0)+Math.round(u.stats[k]*(1+ilvl*.04));}
@@ -650,6 +664,7 @@ function drawHero(c,x,y,s,look,eq,dir,t,moving,swing,mounted){
     if(!back){c.fillStyle=shade(L.skin,-.08);c.beginPath();c.moveTo(-2.2,-21+bob);c.lineTo(2.2,-21+bob);c.lineTo(0,-17.6+bob);c.closePath();c.fill();
       c.strokeStyle=shade(L.tunic,.35);c.lineWidth=.55;c.beginPath();c.moveTo(-2.4,-21+bob);c.lineTo(0,-17.4+bob);c.lineTo(2.4,-21+bob);c.stroke();}
     c.strokeStyle=hexA(shade(L.tunic,-.45),.6);c.lineWidth=.4;c.beginPath();c.moveTo(-3.5*bw,-17+bob);c.quadraticCurveTo(-4*bw,-13+bob,-3*bw,-11+bob);c.moveTo(3.5*bw,-16+bob);c.quadraticCurveTo(4*bw,-13+bob,3.2*bw,-11+bob);c.stroke();}
+  if(eq.collier&&!back&&!mounted){const NC=itemCol(eq.collier),gc=eq.collier.rarity?RAR[eq.collier.rarity].c:'#b9d4e8';c.strokeStyle=NC;c.lineWidth=.55;c.beginPath();c.moveTo(-2.6*bw,-20.6+bob);c.quadraticCurveTo(0,-15.8+bob,2.6*bw,-20.6+bob);c.stroke();c.fillStyle=NC;circ(c,0,-17.2+bob,1.05);c.fillStyle=gc;circ(c,0,-17.2+bob,.6);}
   // ceinture, boucle et bourse
   c.fillStyle='#3a2618';c.fillRect(-6.5*bw,-10.8+bob,13*bw,2.2);c.fillStyle='#5a3a22';c.fillRect(-6.5*bw,-10.8+bob,13*bw,.6);
   c.fillStyle=lg(c,-1.2,-11+bob,1.2,-8.4+bob,['#ffe58a','#d9b24a','#8a6a1a']);c.fillRect(-1.3,-11.1+bob,2.6,2.7);c.fillStyle='#3a2618';c.fillRect(-.5,-10.4+bob,1,1.3);
@@ -672,6 +687,21 @@ function drawHero(c,x,y,s,look,eq,dir,t,moving,swing,mounted){
 
 // ================= Icônes d'objets
 const iconCache=new Map(),urlCache=new Map();
+function drawNecklace(c,it,M,rc){const gem=it.rarity?rc:'#9fd8ff';c.strokeStyle=shade(M,-.35);c.lineWidth=1.6;c.beginPath();c.arc(0,-7,8.5,.12*Math.PI,.88*Math.PI);c.stroke();
+  c.strokeStyle=M;c.lineWidth=.9;c.beginPath();c.arc(0,-7,8.5,.12*Math.PI,.88*Math.PI);c.stroke();c.fillStyle=shade(M,.3);for(let i=0;i<9;i++){const a=(.15+i*.0875)*Math.PI;circ(c,Math.cos(a)*8.5,-7+Math.sin(a)*8.5,.7);}
+  if(it.sub==='torque'){c.fillStyle=M;circ(c,-7.5,-3,1.6);circ(c,7.5,-3,1.6);c.fillStyle=gem;circ(c,0,1.6,1.3);return;}
+  c.fillStyle=shade(M,-.25);c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(4.6,3.8,0,8.6);c.quadraticCurveTo(-4.6,3.8,0,0);c.fill();
+  const g=c.createRadialGradient(-1,3,.3,0,4.4,3.4);g.addColorStop(0,'#fff');g.addColorStop(.35,gem);g.addColorStop(1,shade(gem,-.45));c.fillStyle=g;c.beginPath();c.moveTo(0,1.2);c.quadraticCurveTo(3.4,4.1,0,7.4);c.quadraticCurveTo(-3.4,4.1,0,1.2);c.fill();}
+function drawTrinket(c,it,M,rc){const gem=it.rarity?rc:'#c79bff',gg=(x,y,r)=>{const g=c.createRadialGradient(x-r*.35,y-r*.35,.2,x,y,r);g.addColorStop(0,'#fff');g.addColorStop(.35,gem);g.addColorStop(1,shade(gem,-.5));return g;};
+  if(it.sub==='gemme'){c.fillStyle=shade(M,-.3);c.beginPath();for(let i=0;i<6;i++){const a=i/6*TAU;c.lineTo(Math.cos(a)*8.4,Math.sin(a)*8.4);}c.closePath();c.fill();
+    c.fillStyle=gg(0,0,7);c.beginPath();for(let i=0;i<6;i++){const a=i/6*TAU;c.lineTo(Math.cos(a)*6.8,Math.sin(a)*6.8);}c.closePath();c.fill();
+    c.strokeStyle='rgba(255,255,255,.45)';c.lineWidth=.4;c.beginPath();for(let i=0;i<6;i++){const a=i/6*TAU;c.moveTo(0,0);c.lineTo(Math.cos(a)*6.8,Math.sin(a)*6.8);}c.stroke();return;}
+  if(it.sub==='talisman'){c.fillStyle=shade(M,-.3);circ(c,0,0,8.2);c.fillStyle=M;circ(c,0,0,7);c.strokeStyle=shade(M,-.45);c.lineWidth=.8;c.beginPath();c.arc(0,0,5,0,TAU);
+    for(let i=0;i<3;i++){const a=i/3*TAU-Math.PI/2;c.moveTo(0,0);c.lineTo(Math.cos(a)*5,Math.sin(a)*5);}c.stroke();c.fillStyle=gg(0,0,2.2);circ(c,0,0,2.2);c.fillStyle=shade(M,-.3);rr(c,-1.2,-10.6,2.4,3,1);return;}
+  if(it.sub==='relique'){c.fillStyle=shade(M,-.35);c.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU-Math.PI/2,r=i%2?3.4:9;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();
+    c.fillStyle=M;c.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU-Math.PI/2,r=i%2?2.6:7.4;c.lineTo(Math.cos(a)*r,Math.sin(a)*r);}c.closePath();c.fill();c.fillStyle=gg(0,0,2.4);circ(c,0,0,2.4);return;}
+  c.fillStyle=shade(M,-.3);c.beginPath();c.ellipse(0,0,8.8,6.8,0,0,TAU);c.fill();c.fillStyle=M;c.beginPath();c.ellipse(0,0,7.6,5.6,0,0,TAU);c.fill();
+  c.fillStyle=shade(M,.35);for(let i=0;i<10;i++){const a=i/10*TAU;circ(c,Math.cos(a)*6.6,Math.sin(a)*4.8,.55);}c.fillStyle=gg(0,0,3.6);c.beginPath();c.ellipse(0,0,3.6,2.9,0,0,TAU);c.fill();}
 function iconCv(it){if(iconCache.has(it.id))return iconCache.get(it.id);
   const cv=document.createElement('canvas');cv.width=cv.height=64;const c=cv.getContext('2d');const rc=RAR[it.rarity].c,M=itemCol(it);
   const g=c.createRadialGradient(32,32,3,32,32,34);g.addColorStop(0,hexA(rc,it.rarity?0.38:0.14));g.addColorStop(1,hexA(rc,0));c.fillStyle=g;c.fillRect(0,0,64,64);
@@ -682,6 +712,8 @@ function iconCv(it){if(iconCache.has(it.id))return iconCache.get(it.id);
     circ(c,-7,-6.5,3);circ(c,7,-6.5,3);if(it.rarity>=2){c.fillStyle=rc;circ(c,0,-1,1.6);}}
   else if(it.slot==='bouclier')drawShield(c,0,0,it,1.15);
   else if(it.slot==='bottes'){c.fillStyle=M;rr(c,-8,-8,5,11,1.5);rr(c,-8,0,9,4,2);c.fillStyle=shade(M,-0.15);rr(c,1,-6,5,11,1.5);rr(c,1,2,9,4,2);}
+  else if(it.slot==='collier')drawNecklace(c,it,M,rc);
+  else if(it.slot==='bijou')drawTrinket(c,it,M,rc);
   else{c.strokeStyle=M;c.lineWidth=2.4;c.beginPath();c.arc(0,2,5,0,TAU);c.stroke();c.fillStyle=it.rarity?rc:'#b9d4e8';circ(c,0,-3.4,2.5);}
   iconCache.set(it.id,cv);return cv;}
 function iconURL(it){if(!urlCache.has(it.id))urlCache.set(it.id,iconCv(it).toDataURL());return urlCache.get(it.id);}
@@ -1258,7 +1290,7 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
       for(const k of Object.keys(STATN))if(it.stats[k])h+=`<button class="btn wide" data-act="reroll" data-arg="${k}" ${dis(S.gold<c)}>Relancer ${STATN[k]} ${fmt(k,it.stats[k])} · ${c} or</button>`;}}
   else if(shopId==='gamble'){const gc=gambleCost();
     h+='<p class="hint">Choisis un emplacement : Arthur te vend un objet mystère d\'un niveau au-dessus du tien. Environ 1 chance sur 22 d\'être légendaire.</p><div class="pills">';
-    h+=SLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=bagMax())}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
+    h+=ISLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=bagMax())}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
     if(lastGamble)h+='<span class="ex-lab">Ton dernier achat</span>'+itemRow(lastGamble);}
   else if(shopId==='dye'){
     h+='<canvas id="shopCv" class="shop-cv"></canvas><p class="hint">Chaque teinture coûte 25 or. Revenir à la couleur d\'origine est gratuit. La tunique et la cape se changent dans « Apparence ».</p>';
@@ -1648,7 +1680,7 @@ const MELEE={none:{cd:1,r:34,arc:.3},epee:{cd:1,r:40,arc:.2},hache:{cd:1.1,r:42,
   espadon:{cd:1.35,r:54,arc:-.05},grandehache:{cd:1.45,r:52,arc:-.1},marteau:{cd:1.6,r:50,arc:-.2},griffes:{cd:.55,r:40,arc:.1}};
 function canEquip(it){if(it.slot!=='arme')return it.slot!=='bouclier'||!!CL().shield;return !!it.proj||CL().weapons.includes(it.sub);}
 function mkItem(slot,sub,base,name,st,extra){return Object.assign({id:nid(),slot,sub,base,name,rarity:0,mat:slot==='bouclier'?'Cuir':'Fer',ilvl:1,stats:Object.assign({atk:0,def:0,hp:0,spd:0,crit:0},st)},extra||{});}
-function starterEq(cls){const e={arme:null,casque:null,armure:null,bouclier:null,bottes:null,anneau:null};
+function starterEq(cls){const e={arme:null,casque:null,armure:null,bouclier:null,bottes:null,anneau:null,anneau2:null,collier:null,bijou:null};
   if(cls==='voleur'){e.arme=mkItem('arme','dague','Dague','Dague émoussée',{atk:3});e.bouclier=mkItem('arme','dague','Dague','Dague émoussée',{atk:2});}
   else if(cls==='mage')e.arme=mkItem('arme','baton','Bâton',"Bâton d'apprenti",{atk:4},{elem:'fire'});
   else if(cls==='lycan')e.arme=mkItem('arme','hache','Hache','Hachette de chasseur',{atk:4});
@@ -1656,7 +1688,7 @@ function starterEq(cls){const e={arme:null,casque:null,armure:null,bouclier:null
   else{e.arme=mkItem('arme','epee','Épée','Épée rouillée',{atk:4});e.bouclier=mkItem('bouclier','rond','Bouclier rond','Bouclier de bois',{def:2});}
   return e;}
 function doEquip(it,i,hand){if(!canEquip(it)){toast('Ta classe ne peut pas utiliser cet objet','#ff6b6b');return;}
-  const ratio=G.P.hp/stats().hp;let slot=hand==='left'?'bouclier':it.slot;
+  const ratio=G.P.hp/stats().hp;let slot=it.slot==='anneau'?(hand==='left'?'anneau2':(S.eq.anneau&&!S.eq.anneau2?'anneau2':'anneau')):hand==='left'?'bouclier':it.slot;
   S.bag.splice(i,1);const back=[];
   if(slot==='arme'&&TWOH.includes(it.sub)&&S.eq.bouclier){back.push(S.eq.bouclier);S.eq.bouclier=null;}
   if(slot==='bouclier'&&it.slot==='bouclier'&&S.eq.arme&&TWOH.includes(S.eq.arme.sub)){back.push(S.eq.arme);S.eq.arme=null;}
@@ -2940,10 +2972,10 @@ function renderInv(){const st=stats();
   renderDetail();}
 function renderDetail(){const d=$('detail');const it=sel?(sel.from==='eq'?S.eq[sel.slot]:S.bag[sel.i]):null;
   if(!it){sel=null;d.innerHTML='<p class="hint">Touche un objet pour voir ses statistiques et le comparer à ce que Pavel porte.</p>';return;}
-  const cur=sel.from==='bag'?S.eq[it.slot]:null;
+  const cur=sel.from==='bag'?(it.slot==='anneau'?(S.eq.anneau&&S.eq.anneau2?((itemValue(S.eq.anneau)<=itemValue(S.eq.anneau2))?S.eq.anneau:S.eq.anneau2):null):S.eq[it.slot]):null;
   let rows='';for(const k of Object.keys(STATN)){const v=it.stats[k],cv=cur?cur.stats[k]:0;if(!v&&!cv)continue;
     const diff=v-cv;rows+=`<li>${STATN[k]} <b>${fmt(k,v)}</b>${sel.from==='bag'&&diff?` <span class="${diff>0?'up':'down'}">(${diff>0?'+':''}${diff})</span>`:''}</li>`;}
-  const acts=sel.from==='bag'?`${canEquip(it)?'<button class="btn primary" id="eqBtn">Équiper</button>'+(CL().dual&&it.sub==='dague'?'<button class="btn" id="eqLeft">Main gauche</button>':''):'<button class="btn" id="eqBtn" disabled>Interdit au '+CL().name.toLowerCase()+'</button>'}<button class="btn" id="sellBtn">Vendre ${itemValue(it)} or</button><button class="btn" id="dropBtn">Jeter au sol</button>${mateName()?'<button class="btn" id="giveBtn">Donner à '+mateName()+'</button>':''}`:`<button class="btn" id="unBtn">Retirer</button>`;
+  const acts=sel.from==='bag'?`${canEquip(it)?(it.slot==='anneau'&&S.eq.anneau&&S.eq.anneau2?'<button class="btn primary" id="eqBtn">Remplacer l\'anneau 1</button><button class="btn primary" id="eqLeft">Remplacer l\'anneau 2</button>':'<button class="btn primary" id="eqBtn">Équiper</button>'+(CL().dual&&it.sub==='dague'?'<button class="btn" id="eqLeft">Main gauche</button>':'')):'<button class="btn" id="eqBtn" disabled>Interdit au '+CL().name.toLowerCase()+'</button>'}<button class="btn" id="sellBtn">Vendre ${itemValue(it)} or</button><button class="btn" id="dropBtn">Jeter au sol</button>${mateName()?'<button class="btn" id="giveBtn">Donner à '+mateName()+'</button>':''}`:`<button class="btn" id="unBtn">Retirer</button>`;
   d.innerHTML=`<h3 style="color:${RAR[it.rarity].c}">${iname(it)}</h3><div class="meta">${SLOTN[it.slot]} · ${it.mat} · ${RAR[it.rarity].n} · niv. ${it.ilvl}${cur?' · comparé à '+cur.name:''}</div><ul>${rows}${itemExtraHTML(it)}</ul>${(it.proj||RW[it.sub])?`<p class="power">${it.proj?POWERS[it.proj]:RDESC(it)}</p>`:''}<div class="acts">${acts}</div>`;
   const keepHp=()=>{const r=G.P.hp/stats().hp;return()=>{G.P.hp=Math.max(1,Math.round(stats().hp*r));};};
   if(sel.from==='bag'){
