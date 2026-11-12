@@ -1,6 +1,6 @@
 {
   "name": "pavels-fury",
-  "version": "0.33.0",
+  "version": "0.33.1",
   "private": true,
   "description": "Pavel's Fury : jeu d'aventure mobile",
   "dependencies": {

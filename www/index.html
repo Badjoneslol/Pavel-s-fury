@@ -235,8 +235,21 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <button class="btn primary" id="contBtn" hidden>Continuer</button>
     <button class="btn" id="newBtn">Nouveau héros</button>
     <button class="btn" id="mpBtn" type="button">Jouer à plusieurs</button>
+    <button class="btn" id="saveXBtn" type="button">Sauvegarde</button>
   </div>
   <p class="keys">Sur téléphone : glisse à gauche pour bouger, boutons à droite pour frapper. Au clavier : ZQSD ou flèches, Espace pour frapper, E pour parler, F pour la Fureur, R pour une potion, C pour le cheval, T pour le portail, I pour le sac. À la manette : stick pour bouger, A frapper ou parler, X Fureur, B potion, Y cheval ou portail, Start le sac.</p>
+</div>
+
+<div id="saveX" class="screen" hidden>
+  <h2>Sauvegarde</h2>
+  <div class="mp-box">
+    <p class="keys">Pour garder tes héros en changeant d'appareil ou avant de réinstaller le jeu : copie ce code et garde-le (dans un message, une note…). Sur l'autre appareil, colle-le en bas puis touche « Importer ».</p>
+    <textarea id="saveOut" readonly rows="4" style="width:100%;font:12px monospace;border-radius:10px;padding:8px;background:var(--panel2);color:var(--ink,#f6e2c4);border:1px solid var(--line)"></textarea>
+    <div class="actions"><button class="btn primary" id="saveCopy" type="button">Copier le code</button></div>
+    <p class="keys">Importer un code :</p>
+    <textarea id="saveIn" rows="4" placeholder="Colle ici le code de sauvegarde" style="width:100%;font:12px monospace;border-radius:10px;padding:8px;background:var(--panel2);color:var(--ink,#f6e2c4);border:1px solid var(--line)"></textarea>
+    <div class="actions"><button class="btn primary" id="saveImp" type="button">Importer</button><button class="btn" id="saveBack" type="button">Retour</button></div>
+  </div>
 </div>
 
 <div id="mp" class="screen" hidden>
@@ -2620,6 +2633,14 @@ function renderTitle(){const box=$('heroList');box.innerHTML='';$('contBtn').hid
     const [play,del]=row.querySelectorAll('button');play.onclick=()=>playHero(i);
     del.onclick=()=>modal('Supprimer '+(h.name||'ce héros')+' ?','Son équipement, son or et sa progression seront perdus définitivement.','Supprimer',()=>{HEROES.splice(i,1);saveHeroes();paused=true;renderTitle();show('title');},true);
     box.appendChild(row);});}
+function saveCode(){const j=JSON.stringify({v:1,heroes:HEROES});return 'PF1:'+btoa(unescape(encodeURIComponent(j)));}
+function readCode(t){t=(t||'').replace(/\s+/g,'');if(!t.startsWith('PF1:'))return null;try{const o=JSON.parse(decodeURIComponent(escape(atob(t.slice(4)))));return o&&Array.isArray(o.heroes)?o.heroes.filter(h=>h&&h.look):null;}catch(_){return null;}}
+function openSaveX(){$('saveOut').value=saveCode();$('saveIn').value='';show('saveX');}
+$('saveXBtn').onclick=openSaveX;$('saveBack').onclick=()=>{renderTitle();show('title');};
+$('saveCopy').onclick=()=>{const t=$('saveOut');t.focus();t.select();let ok=false;try{if(navigator.clipboard){navigator.clipboard.writeText(t.value).then(()=>toast('Code copié !','#9be36a'),()=>{document.execCommand&&document.execCommand('copy');toast('Code sélectionné : copie-le','#f6e2c4');});ok=true;}}catch(_){}if(!ok){try{document.execCommand('copy');toast('Code copié !','#9be36a');}catch(_){toast('Code sélectionné : copie-le','#f6e2c4');}}};
+$('saveImp').onclick=()=>{const hs=readCode($('saveIn').value);if(!hs||!hs.length){toast('Code invalide','#ff6b6b');return;}
+  let add=0,rep=0;for(const h of hs){const k=HEROES.findIndex(o=>o.name===h.name&&o.cls===h.cls);if(k>=0){HEROES[k]=h;rep++;}else{HEROES.push(h);add++;}}
+  saveHeroes();toast((add?add+' héros ajouté'+(add>1?'s':''):'')+(add&&rep?' · ':'')+(rep?rep+' héros mis à jour':''),'#9be36a');renderTitle();show('title');};
 function playHero(i){HI=i;S=migrate(HEROES[i]);DG=null;goTown();}
 function goMenu(){save();netStop();G=null;S=null;DG=null;$('hud').hidden=true;paused=true;renderTitle();show('title');}
 
@@ -3085,7 +3106,7 @@ function drawPreview(c,look,eq,dir,t,isTitle){const {w,h}=fitCv(c);if(!w||!h)ret
   drawHero(x,w/2,h*0.88,Math.min(h/50,w/34),look,isTitle&&!S?{arme:titleSword}:eq,dir,t,false,0);}
 
 // ================= Écrans
-function show(id){for(const s of ['title','creator','inv','exped','shop','petPick','mp'])$(s).hidden=s!==id;}
+function show(id){for(const s of ['title','creator','inv','exped','shop','petPick','mp','saveX'])$(s).hidden=s!==id;}
 function startGame(){S.maxDL=Math.max(1,S.maxDL||1);S.dlvl=Math.min(curDL(),S.maxDL);newDungeon();show(null);$('hud').hidden=false;$('stage').hidden=false;paused=false;resize();toast(BIO().name+' · '+DIF().name+' : descends les '+G.nFloors+' étages, trouve la clé et terrasse '+bossName(),'#f6e2c4');save();
   setTimeout(()=>{$('hint').hidden=true;},7000);}
 // Tout vendre (avec confirmation si le sac contient des objets rares ou mieux)
