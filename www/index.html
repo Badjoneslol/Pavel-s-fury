@@ -415,20 +415,21 @@ const LEG={arme:['Croc de Pavel','Fureur Ancestrale','Brise-Spectre','Chant du C
 
 const OPT={
   skin:['#f6d3b3','#e8b48f','#c98e66','#a0684a','#7a4b33','#4f3022'],
-  hairStyle:[['courte','Courte'],['longue','Longue'],['crete','Crête'],['queue','Queue'],['rase','Rasé']],
+  hairStyle:[['courte','Courte'],['longue','Longue'],['crete','Crête'],['queue','Queue'],['rase','Rasé'],['milong','Mi-longue']],
   hair:['#2a1d16','#5b3a22','#a8642f','#d9b061','#e8e2d6','#b8312f','#3b5bb5','#7d3fa0'],
   beard:[['aucune','Aucune'],['courte','Courte'],['longue','Longue'],['moustache','Moustache']],
   eyes:['#4a7fc1','#3f8a52','#6b4325','#8a8f99','#c03a3a'],
   tunic:['#7a2e2e','#2f5d8a','#3d6b3a','#6b4a2b','#4a3a6b','#8a7a3a','#2b2b33','#b05a2a'],
   cape:[null,'#8f1d22','#1f3f78','#2f5a2c','#d0b04a','#3a2a4a','#e6e1d6'],
   build:[[0,'Fine'],[1,'Normale'],[2,'Costaud']],
-  scar:[[0,'Non'],[1,'Oui']]
+  scar:[[0,'Non'],[1,'Oui']],
+  fem:[[0,'Classique'],[1,'Féminin']]
 };
 const CR_ROWS=[['skin','Peau','c'],['hairStyle','Coiffure','t'],['hair','Cheveux','c'],['beard','Barbe','t'],['eyes','Yeux','c'],
-  ['tunic','Tunique','c'],['cape','Cape','c'],['build','Carrure','t'],['scar','Cicatrice','t']];
-const DEFAULT_LOOK={skin:1,hairStyle:0,hair:1,beard:1,eyes:0,tunic:0,cape:1,build:1,scar:1};
+  ['tunic','Tunique','c'],['cape','Cape','c'],['build','Carrure','t'],['scar','Cicatrice','t'],['fem','Visage','t']];
+const DEFAULT_LOOK={skin:1,hairStyle:0,hair:1,beard:1,eyes:0,tunic:0,cape:1,build:1,scar:1,fem:0};
 function lookCols(l){return{skin:OPT.skin[l.skin],hs:OPT.hairStyle[l.hairStyle][0],hair:OPT.hair[l.hair],beard:OPT.beard[l.beard][0],
-  eyes:OPT.eyes[l.eyes],tunic:OPT.tunic[l.tunic],cape:OPT.cape[l.cape],build:l.build,scar:l.scar};}
+  eyes:OPT.eyes[l.eyes],tunic:OPT.tunic[l.tunic],cape:OPT.cape[l.cape],build:l.build,scar:l.scar,fem:l.fem?1:0};}
 
 // ================= Objets
 function rollRar(b){try{if(S&&S.eq&&CLS[S.cls])b+=(stats().pow.magicFind||0)/100;}catch(e){}const x=R(),u=0.0008+b*0.002,st=u+0.0015+b*0.003,l=st+0.005+b*0.012,t=l+0.045+b*0.1,r=t+0.22+b*0.25;if(x<u)return 4;if(x<st)return 5;if(x<l)return 3;if(x<t)return 2;if(x<r)return 1;return 0;}
@@ -605,7 +606,11 @@ function drawHairFront(c,L,hy,side){const H=L.hair,hs=L.hs;c.fillStyle=hairFill(
   else{c.arc(0,hy,7.7,Math.PI,TAU);c.lineTo(7.5,hy+1.5);c.lineTo(5.6,hy-2.4);c.lineTo(3.2,hy-3.4);c.lineTo(1.2,hy-2.2);c.lineTo(-1,hy-3.8);c.lineTo(-3.6,hy-2.4);c.lineTo(-5.8,hy-3.2);c.lineTo(-7.5,hy+1.5);c.closePath();}
   c.fill();hairStrands(c,H,hy,side);
   if(hs==='longue'&&!side){c.fillStyle=hairFill(c,H,hy+4);rr(c,-8,hy-1,2.9,10.5,1.4);rr(c,5.1,hy-1,2.9,10.5,1.4);c.strokeStyle=hexA(shade(H,-.4),.6);c.lineWidth=.3;c.beginPath();c.moveTo(-6.6,hy);c.lineTo(-6.8,hy+9);c.moveTo(6.6,hy);c.lineTo(6.8,hy+9);c.stroke();}
-  if(hs==='queue'&&!side){c.fillStyle=shade(H,-0.15);circ(c,0,hy-7.3,2);c.fillStyle='#8a2a22';c.fillRect(-1.6,hy-6.4,3.2,.8);}}
+  if(hs==='queue'&&!side){c.fillStyle=shade(H,-0.15);circ(c,0,hy-7.3,2);c.fillStyle='#8a2a22';c.fillRect(-1.6,hy-6.4,3.2,.8);}
+  if(hs==='milong'){c.fillStyle=hairFill(c,H,hy+2);if(!side){rr(c,-8.1,hy-1.5,3,7.6,1.5);rr(c,5.1,hy-1.5,3,7.6,1.5);ell(c,-7.4,hy+5.8,2,1.3);ell(c,7.4,hy+5.8,2,1.3);}
+    c.fillStyle=hairFill(c,H,hy-4);c.beginPath();if(side){c.moveTo(-2,hy-6.5);c.quadraticCurveTo(3.5,hy-6,6.2,hy-2.6);c.lineTo(4.2,hy-3.4);c.quadraticCurveTo(1.5,hy-4.6,-2,hy-4.2);}else{c.moveTo(-6.6,hy-3.2);c.quadraticCurveTo(-1.5,hy-1.6,4.8,hy-4.4);c.lineTo(6.4,hy-6);c.quadraticCurveTo(0,hy-8.6,-6.6,hy-3.2);}c.closePath();c.fill();
+    c.strokeStyle=hexA(shade(H,.55),.5);c.lineWidth=.4;c.beginPath();c.moveTo(-4.5,hy-4.6);c.quadraticCurveTo(-.5,hy-3.6,3.6,hy-5.6);c.stroke();}
+  if(L.fem&&hs!=='rase'){c.fillStyle='#d9b24a';const fx=side?-1.5:-4.8,fy=hy-5.4;for(let i=0;i<5;i++){const a=i/5*TAU;circ(c,fx+Math.cos(a)*1.1,fy+Math.sin(a)*1.1,.75);}c.fillStyle='#ff9ec4';circ(c,fx,fy,.7);}}
 function drawBeard(c,L,hy,side){const b=L.beard;if(b==='aucune'||b==='moustache')return;c.fillStyle=lg(c,0,hy,0,hy+12,[L.hair,shade(L.hair,-.3)]);c.beginPath();
   if(side){c.arc(0,hy,7.1,-0.05,Math.PI*0.62);c.lineTo(1.5,hy+2);c.lineTo(6,hy+2);c.closePath();}
   else{c.arc(0,hy,7.1,0.08,Math.PI-0.08);c.lineTo(-4.6,hy+2.2);c.quadraticCurveTo(0,hy+4.2,4.6,hy+2.2);c.closePath();}c.fill();
@@ -622,6 +627,7 @@ function drawEye(c,x,y,L,side){c.fillStyle='#fbf7f0';c.beginPath();c.ellipse(x,y
   c.strokeStyle='#2a1a16';c.lineWidth=.42;c.beginPath();c.ellipse(x,y,side?1.3:1.65,1.3,0,Math.PI*1.05,Math.PI*1.95);c.stroke();}
 function drawHead(c,L,eq,hy,side,back){const H=L.hair,hs=L.hs,sk=L.skin;
   if(!back&&!eq.casque){if(hs==='longue'){c.fillStyle=lg(c,0,hy-3,0,hy+10,[shade(H,-.05),shade(H,-.35)]);if(side)rr(c,-8,hy-3,7,13,3);else rr(c,-7.8,hy-3,15.6,12.5,4);}
+    if(hs==='milong'){c.fillStyle=lg(c,0,hy-3,0,hy+8,[shade(H,-.05),shade(H,-.35)]);if(side){rr(c,-8.2,hy-3,7.4,9.6,3);ell(c,-7.6,hy+6.2,2.2,1.4);}else rr(c,-7.9,hy-3,15.8,9.4,4);}
     if(hs==='queue'&&side){c.fillStyle=shade(H,-0.1);ell(c,-8.5,hy+2,2.6,5);}}
   // cou avec ombre sous le menton
   c.fillStyle=shade(sk,-0.18);c.fillRect(-1.9,hy+5,3.8,3.4);c.fillStyle=hexA(shade(sk,-.5),.35);c.fillRect(-1.9,hy+5.6,3.8,1);
@@ -629,10 +635,10 @@ function drawHead(c,L,eq,hy,side,back){const H=L.hair,hs=L.hs,sk=L.skin;
   const g=c.createRadialGradient(side?1:-2.4,hy-3,.5,0,hy,8);g.addColorStop(0,shade(sk,.2));g.addColorStop(.65,sk);g.addColorStop(1,shade(sk,-.22));c.fillStyle=g;circ(c,0,hy,7);
   if(back){
     if(!eq.casque){if(hs==='rase'||hs==='crete'){c.fillStyle=H;c.globalAlpha=.32;circ(c,0,hy,7.1);c.globalAlpha=1;if(hs==='crete'){c.fillStyle=hairFill(c,H,hy-4);rr(c,-1.8,hy-11,3.6,14,1.5);}}
-      else{c.fillStyle=hairFill(c,H,hy);circ(c,0,hy,7.6);if(hs==='longue')rr(c,-7.6,hy-1,15.2,12,4);
-        c.strokeStyle=hexA(shade(H,-.45),.6);c.lineWidth=.32;c.beginPath();for(let i=-3;i<=3;i++){c.moveTo(i*.8,hy-7.3);c.quadraticCurveTo(i*1.8,hy-1,i*1.6,hy+(hs==='longue'?10:5));}c.stroke();
+      else{c.fillStyle=hairFill(c,H,hy);circ(c,0,hy,7.6);if(hs==='longue')rr(c,-7.6,hy-1,15.2,12,4);if(hs==='milong'){rr(c,-7.8,hy-1,15.6,8.4,4);ell(c,-7,hy+7,2.2,1.4);ell(c,7,hy+7,2.2,1.4);}
+        c.strokeStyle=hexA(shade(H,-.45),.6);c.lineWidth=.32;c.beginPath();for(let i=-3;i<=3;i++){c.moveTo(i*.8,hy-7.3);c.quadraticCurveTo(i*1.8,hy-1,i*1.6,hy+(hs==='longue'?10:hs==='milong'?7:5));}c.stroke();
         if(hs==='queue'){c.fillStyle=shade(H,-0.12);ell(c,0,hy+8,2.6,4.5);c.fillStyle='#8a2a22';c.fillRect(-1.6,hy+4.6,3.2,.8);}}}
-    c.fillStyle=shade(sk,-.1);if(!(hs==='longue'&&!eq.casque)){ell(c,-7,hy+.8,1.1,1.8);ell(c,7,hy+.8,1.1,1.8);}
+    c.fillStyle=shade(sk,-.1);if(!((hs==='longue'||hs==='milong')&&!eq.casque)){ell(c,-7,hy+.8,1.1,1.8);ell(c,7,hy+.8,1.1,1.8);}
   }else{
     // oreilles
     if(side){c.fillStyle=shade(sk,-.08);ell(c,-1.4,hy+.6,1.5,2.1);c.fillStyle=shade(sk,-.3);ell(c,-1.2,hy+.7,.6,1.1);}
@@ -640,6 +646,8 @@ function drawHead(c,L,eq,hy,side,back){const H=L.hair,hs=L.hs,sk=L.skin;
     // joues rosées
     c.fillStyle='rgba(225,95,85,.2)';if(side)ell(c,3.2,hy+2,1.7,1.1);else{ell(c,-3.9,hy+2,1.6,1);ell(c,3.9,hy+2,1.6,1);}
     const ex=side?[3.4]:[-2.6,2.6];for(const x of ex)drawEye(c,x,hy-0.2,L,side);
+    if(L.fem){c.strokeStyle='#1a1010';c.lineWidth=.42;c.lineCap='round';c.beginPath();for(const x of ex){const o=side?1:(x<0?-1:1),w=side?1.3:1.65;c.moveTo(x+o*w*.7,hy-1.1);c.lineTo(x+o*(w+.7),hy-1.9);c.moveTo(x+o*w*.2,hy-1.45);c.lineTo(x+o*(w*.4+.3),hy-2.3);}c.stroke();
+      c.fillStyle='#d4607a';if(side)ell(c,5.2,hy+3.5,1,.55);else{ell(c,0,hy+3.55,1.35,.6);c.fillStyle='rgba(255,255,255,.4)';ell(c,-.4,hy+3.35,.5,.2);}}
     // sourcils
     c.strokeStyle=shade(H,-0.2);c.lineWidth=.8;c.lineCap='round';c.beginPath();for(const x of ex){c.moveTo(x-1.5,hy-2.1+(x<0?.25:0));c.quadraticCurveTo(x,hy-2.8,x+1.5,hy-2.2+(x>0?.25:0));}c.stroke();
     // nez
@@ -696,7 +704,9 @@ function drawHero(c,x,y,s,look,eq,dir,t,moving,swing,mounted){
   // ceinture, boucle et bourse
   c.fillStyle='#3a2618';c.fillRect(-6.5*bw,-10.8+bob,13*bw,2.2);c.fillStyle='#5a3a22';c.fillRect(-6.5*bw,-10.8+bob,13*bw,.6);
   c.fillStyle=lg(c,-1.2,-11+bob,1.2,-8.4+bob,['#ffe58a','#d9b24a','#8a6a1a']);c.fillRect(-1.3,-11.1+bob,2.6,2.7);c.fillStyle='#3a2618';c.fillRect(-.5,-10.4+bob,1,1.3);
-  if(!back){c.fillStyle='#6b4a2b';rr(c,side?-3.5:3.2*bw,-9.6+bob,2.6,3,1);c.fillStyle='#8a6a3a';c.fillRect(side?-3.5:3.2*bw,-9.6+bob,2.6,.7);}
+  if(!back&&!L.fem){c.fillStyle='#6b4a2b';rr(c,side?-3.5:3.2*bw,-9.6+bob,2.6,3,1);c.fillStyle='#8a6a3a';c.fillRect(side?-3.5:3.2*bw,-9.6+bob,2.6,.7);}
+  if(L.fem&&!mounted){const sk2=L.tunic;c.fillStyle=lg(c,-8*bw,-9,8*bw,-2,[shade(sk2,.2),sk2,shade(sk2,-.32)]);c.beginPath();c.moveTo(-6.4*bw,-8.8+bob);c.lineTo(6.4*bw,-8.8+bob);c.lineTo(8.6*bw,-3);c.quadraticCurveTo(0,-1.6,-8.6*bw,-3);c.closePath();c.fill();
+    c.strokeStyle=shade(sk2,-.4);c.lineWidth=.45;c.beginPath();for(const fx of [-3.5,0,3.5]){c.moveTo(fx*bw,-8.5+bob);c.lineTo(fx*1.3*bw,-2.4);}c.stroke();c.fillStyle='#d9b24a';c.beginPath();c.moveTo(-8.6*bw,-3);c.quadraticCurveTo(0,-1.6,8.6*bw,-3);c.lineTo(8.5*bw,-2.3);c.quadraticCurveTo(0,-.9,-8.5*bw,-2.3);c.closePath();c.fill();}
   if(L.cape&&back){c.fillStyle=lg(c,0,-21,0,-1.5,[shade(L.cape,.12),L.cape,shade(L.cape,-.3)]);c.beginPath();c.moveTo(-7.5*bw,-21+bob);c.lineTo(7.5*bw,-21+bob);c.lineTo(10.5*bw,-1.5);c.lineTo(-10.5*bw,-1.5);c.closePath();c.fill();
     c.strokeStyle=shade(L.cape,-0.3);c.lineWidth=0.7;c.beginPath();c.moveTo(-3,-18+bob);c.quadraticCurveTo(-3.6,-10,-4.8,-2);c.moveTo(3,-18+bob);c.quadraticCurveTo(3.6,-10,4.8,-2);c.moveTo(0,-17+bob);c.lineTo(0,-2);c.stroke();
     c.fillStyle=shade(L.cape,.3);c.fillRect(-10.5*bw,-2.4,21*bw,.9);c.fillStyle='#d9b24a';circ(c,-6.5*bw,-20.3+bob,.9);circ(c,6.5*bw,-20.3+bob,.9);}
@@ -1274,6 +1284,7 @@ const NPCS=[
   {id:'mystic',short:'Parrain',talk:'Parler au Parrain',name:'Le Parrain, mystique',role:"Relance une statistique d'un objet.",tx:22.5,ty:5.8,look:{skin:3,hairStyle:1,hair:4,beard:2,eyes:4,tunic:4,cape:5,build:1,scar:0},eq:{}},
   {id:'shop',short:'Élise',name:'Élise la Marchande',role:'Potions, objets du jour et rachat.',tx:4.5,ty:16.8,look:{skin:0,hairStyle:1,hair:2,beard:0,eyes:1,tunic:2,cape:4,build:0,scar:0},eq:{}},
   {id:'gamble',short:'Arthur',name:'Arthur le Parieur',role:'Des objets mystère, parfois légendaires.',tx:22.5,ty:16.8,look:{skin:1,hairStyle:3,hair:0,beard:3,eyes:0,tunic:6,cape:1,build:1,scar:1},eq:{}},
+  {id:'luna',short:'Luna',name:'Luna, la marraine de Pavel',role:'Grimoires, bijoux et anneaux enchantés, renouvelés après chaque expédition.',tx:20.5,ty:10.2,look:{skin:0,hairStyle:5,hair:1,beard:0,eyes:1,tunic:4,cape:5,build:0,scar:0,fem:1},eq:{}},
   {id:'dye',short:'Pigne',name:'Pigne, maître des teintures',role:"Change la couleur de ton équipement.",tx:7.5,ty:10,look:{skin:4,hairStyle:0,hair:6,beard:0,eyes:3,tunic:7,cape:6,build:0,scar:0},eq:{}}
 ];
 function buildTown(){MW=28;MH=22;map=new Array(MW*MH).fill('#');
@@ -1357,9 +1368,29 @@ const gambleCost=()=>50+S.lvl*15, potionCost=()=>20+5*S.lvl;
 const allItems=()=>[...SLOTS.filter(k=>S.eq[k]).map(k=>({it:S.eq[k],w:'Porté'})),...S.bag.map(it=>({it,w:'Sac'}))];
 const findItem=id=>{const o=allItems().find(o=>o.it.id===id);return o?o.it:null;};
 function pay(n){if(S.gold<n){toast("Pas assez d'or",'#ff6b6b');return false;}S.gold-=n;SND.gold();return true;}
+// ================= Luna, marraine de Pavel : grimoires, bijoux et anneaux enchantés
+function refreshLuna(){if(S.lunaAt!==S.dl||!Array.isArray(S.lunaStock)){const L=[],il=S.lvl+1,rr0=()=>R()<.06?3:R()<.45?2:1;
+    const tome=()=>{let it;for(let k=0;k<60;k++){it=genItem(il,rr0(),'bouclier');if(isTome(it))return it;}it.sub='grimoire';it.base='Grimoire';return it;};
+    const nT=S.cls==='demoniste'?2:1;for(let i=0;i<nT;i++)L.push(tome());
+    L.push(genItem(il,rr0(),'anneau'),genItem(il,rr0(),'anneau'),genItem(il,rr0(),'collier'),genItem(il,rr0(),'bijou'));
+    S.lunaStock=L;S.lunaAt=S.dl;save();}}
+const lunaPrice=it=>itemValue(it)*(it.rarity>=3?6:5);
+function drawLunaStall(c,n,t){const x=n.x,y=n.y-26;
+  if(SHADOWS){c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y+8,40,8,0,0,TAU);c.fill();}
+  c.fillStyle='#4a2f1c';for(const px of [-34,32])c.fillRect(x+px,y-42,3,50);
+  c.fillStyle=lg(c,0,y-6,0,y+8,['#8a5a35','#5a3a22']);rr(c,x-38,y-6,76,12,2);c.fillStyle='#6a2a7a';c.fillRect(x-38,y-6,76,3);
+  c.fillStyle='#d9b24a';for(let i=0;i<8;i++)c.fillRect(x-36+i*10,y-3,4,.8);
+  const cols=['#6a3aa0','#d9b24a'];for(let i=0;i<8;i++){c.fillStyle=cols[i%2];c.beginPath();c.moveTo(x-40+i*10,y-46);c.lineTo(x-30+i*10,y-46);c.lineTo(x-30+i*10,y-36);c.quadraticCurveTo(x-35+i*10,y-31,x-40+i*10,y-36);c.closePath();c.fill();}
+  c.fillStyle='#4a2a6a';c.fillRect(x-41,y-49,82,4);
+  const it=[{slot:'bouclier',sub:'necro',rarity:3,mat:'Obsidienne'},{slot:'bouclier',sub:'grimoire',rarity:2,mat:'Cuir'}];
+  c.save();c.translate(x-24,y-9);drawTome(c,it[0],.75);c.restore();c.save();c.translate(x+24,y-9);drawTome(c,it[1],.75);c.restore();
+  const gl=(gx,gy,col)=>{const p=.5+Math.sin(t*4+gx)*.5;c.fillStyle=col;c.beginPath();c.moveTo(gx,gy-3);c.lineTo(gx+2.2,gy);c.lineTo(gx,gy+3);c.lineTo(gx-2.2,gy);c.closePath();c.fill();c.fillStyle=`rgba(255,255,255,${.4+p*.5})`;circ(c,gx-.6,gy-.8,.7);};
+  gl(x-9,y-9,'#3fc8ff');gl(x+9,y-9,'#7ed321');gl(x,y-11,'#ff5a8a');
+  c.strokeStyle='#d9b24a';c.lineWidth=1;c.beginPath();c.arc(x-1,y-5,3,0,TAU);c.stroke();c.beginPath();c.arc(x+5,y-5,2.6,0,TAU);c.stroke();
+  for(let i=0;i<3;i++){const a=t*1.6+i*2.1,sx=x+Math.cos(a)*30,sy=y-22+Math.sin(a*1.3)*6;c.fillStyle=`rgba(255,230,140,${.5+Math.sin(t*5+i)*.4})`;circ(c,sx,sy,1);}}
 function refreshStock(){if(S.stockAt!==S.dl||!Array.isArray(S.stock)){S.stock=[];for(let i=0;i<4;i++)S.stock.push(genItem(S.lvl,Math.min(2,rollRar(0.25))));S.stockAt=S.dl;save();}}
 function itemRow(it,right,sub){const c=RAR[it.rarity].c;return `<div class="row"><img src="${iconURL(it)}" alt="" style="border-color:${c}"><div class="info"><b style="color:${c}">${iname(it)}</b><small>${sub||statSum(it)}</small></div>${right||''}</div>`;}
-function openShop(id){shopId=id;shopSel=null;lastGamble=null;paused=true;if(id==='shop')refreshStock();renderShop();show('shop');}
+function openShop(id){shopId=id;shopSel=null;lastGamble=null;paused=true;if(id==='shop')refreshStock();if(id==='luna')refreshLuna();renderShop();show('shop');}
 function closeShop(){show(null);paused=false;save();}
 $('shopClose').onclick=closeShop;
 function reroll(it,k){ensureBase(it);const old=it.stats[k],kk=1+it.ilvl*0.3;it.bst[k]=0;const nk=pick(Object.keys(STATN));
@@ -1397,6 +1428,12 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
     h+='<p class="hint">Choisis un emplacement : Arthur te vend un objet mystère d\'un niveau au-dessus du tien. Environ 1 chance sur 60 d\'obtenir un objet légendaire ou mieux.</p><div class="pills">';
     h+=ISLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=bagMax())}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
     if(lastGamble)h+='<span class="ex-lab">Ton dernier achat</span>'+itemRow(lastGamble);}
+  else if(shopId==='luna'){
+    h+='<p class="hint">« Mon petit Pavel ! Regarde ce que je t\'ai trouvé… » Luna renouvelle ses merveilles après chaque expédition.</p>';
+    const cats=[['Grimoires',it=>isTome(it)],['Anneaux',it=>it.slot==='anneau'],['Colliers et bijoux',it=>it.slot==='collier'||it.slot==='bijou']];
+    for(const [lab,fn] of cats){const L=S.lunaStock.map((it,i)=>[it,i]).filter(([it])=>fn(it));if(!L.length)continue;h+=`<span class="ex-lab">${lab}</span>`;
+      for(const [it,i] of L){const pr=lunaPrice(it),note=isTome(it)&&!CL().tome?' · réservé au Démoniste (à échanger)':'';h+=itemRow(it,`<button class="btn" data-act="lbuy" data-arg="${i}" ${dis(S.gold<pr||S.bag.length>=bagMax())}>${fmtGold(pr)} or</button>`,statSum(it)+(it.pow?' · '+Object.keys(it.pow).map(k=>POWN[k][0]).join(', '):'')+note);}}
+    if(!S.lunaStock.length)h+='<p class="hint">« Tu m\'as tout pris, mon grand ! Reviens après ta prochaine expédition. »</p>';}
   else if(shopId==='dye'){
     h+='<canvas id="shopCv" class="shop-cv"></canvas><p class="hint">Chaque teinture coûte 25 or. Revenir à la couleur d\'origine est gratuit. La tunique et la cape se changent dans « Apparence ».</p>';
     let any=false;for(const k of ['casque','armure','bouclier','bottes','arme']){const it=S.eq[k];if(!it)continue;any=true;
@@ -2821,6 +2858,7 @@ function shopAct(a,arg){
   else if(a==='bag'){const nb=S.bags||0;if(nb<BAGS.length&&pay(BAGS[nb][1])){S.bags=nb+1;SND.item(2);toast(BAGS[nb][0]+' : ton sac passe à '+bagMax()+' places !','#ffd84a');}}
   else if(a==='buy'){const it=S.stock[+arg];if(it&&S.bag.length<bagMax()&&pay(itemValue(it)*4)){S.bag.push(it);S.stock.splice(+arg,1);SND.item(it.rarity);}}
   else if(a==='sellall'){sellAll(()=>renderShop());return;}
+  else if(a==='lbuy'){const it=S.lunaStock[+arg];if(it&&S.bag.length<bagMax()&&pay(lunaPrice(it))){S.bag.push(it);S.lunaStock.splice(+arg,1);SND.item(it.rarity);toast('Luna : « Prends-en soin ! »','#cbb8ff');}}
   else if(a==='sellcom'){let g=0;S.bag=S.bag.filter(it=>{if(it.rarity===0){g+=itemValue(it);return false;}return true;});S.gold+=g;SND.gold();toast(`+${g} or`,'#d9b24a');}
   else if(a==='forge'){const it=findItem(arg);if(it&&(it.up||0)<10&&pay(forgeCost(it))){ensureBase(it);it.up++;recompute(it);SND.level();toast(`${iname(it)} : amélioration réussie`,'#ffd84a');}}
   else if(a==='mpick')shopSel=arg;
@@ -3041,7 +3079,7 @@ function render(){
       groundShadow(cx,P.x,P.y+6,P.horse?18:10,P.horse?4.5:3.6);if(P.rollT>0){cx.save();const ra=(1-P.rollT/.32)*TAU*((P.rdx||0)<0?-1:1);cx.translate(P.x,P.y-10);cx.rotate(ra);cx.translate(-P.x,-P.y+10);}potWrap(cx,P,S.pot&&S.pot.k,()=>sprite(cx,P.x,P.y,P.horse?{w:84,h:84,oy:68}:S.wolf?{w:104,h:104,oy:84}:{w:68,h:72,oy:54},c=>{if(P.horse)drawMounted(c,P);else if(S.wolf)drawWerewolf(c,P.x,P.y+6,0.95,S.look,P.dir,P.t,P.moving,P.swing);else drawHero(c,P.x,P.y+6,0.95,S.look,S.eq,P.dir,P.t,P.moving,P.swing);}));if(P.rollT>0)cx.restore();cx.globalAlpha=1;}
     else if(e===G.P2)drawMate(cx,e);
     else if(e===G.pet||e.isPet){const ps=[1,1.2,1.42][e.stage||0];groundShadow(cx,e.x,e.y+1,7*ps,2.5*ps);sprite(cx,e.x,e.y,{w:64,h:72,oy:56},c=>drawPet(c,e));petLabel(cx,e);}
-    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate','winportal','stairs'].includes(e.id))drawNpc(cx,e,G.time);else{groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
+    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate','winportal','stairs'].includes(e.id))drawNpc(cx,e,G.time);else{if(e.id==='luna')drawLunaStall(cx,e,G.time);groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
     else{groundShadow(cx,e.x,e.y+(e.type==='boss'?4:2),e.type==='boss'?20:e.r*1.1,e.type==='boss'?6:3);enemySprite(cx,e);
       if(e.elite){cx.font="800 8px 'Alegreya Sans',sans-serif";cx.textAlign='center';cx.lineWidth=2.5;cx.strokeStyle='#000';cx.strokeText(e.ename,e.x,e.y-42);cx.fillStyle='#ffb84a';cx.fillText(e.ename,e.x,e.y-42);}
       if(e.type!=='boss'&&(e.hp<e.max||e.elite)){cx.fillStyle='#000a';cx.fillRect(e.x-10,e.y-36,20,3);cx.fillStyle='#e8555a';cx.fillRect(e.x-10,e.y-36,20*e.hp/e.max,3);}
@@ -3151,7 +3189,7 @@ function renderCreator(){const box=$('crOpts');box.innerHTML='';
     OPT[k].forEach((v,i)=>{const b=document.createElement('button');b.type='button';b.id=`cr-${k}-${i}`;
       if(ty==='c'){b.className='chip col'+(v?'':' none');if(v)b.style.background=v;else b.textContent='×';b.setAttribute('aria-label',v?label+' '+(i+1):'Sans cape');}
       else{b.className='chip';b.textContent=v[1];}
-      if(crLook[k]===i)b.classList.add('on');b.onclick=()=>{crLook[k]=i;renderCreator();};chips.appendChild(b);});
+      if((crLook[k]??0)===i)b.classList.add('on');b.onclick=()=>{crLook[k]=i;renderCreator();};chips.appendChild(b);});
     row.appendChild(chips);box.appendChild(row);}}
 $('crCv').onclick=()=>{crDir=(crDir+1)%4;};
 $('crRand').onclick=()=>{for(const [k] of CR_ROWS)crLook[k]=Math.floor(R()*OPT[k].length);renderCreator();};
