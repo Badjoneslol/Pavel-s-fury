@@ -1284,6 +1284,7 @@ const NPCS=[
   {id:'mystic',short:'Parrain',talk:'Parler au Parrain',name:'Le Parrain, mystique',role:"Relance une statistique d'un objet.",tx:22.5,ty:5.8,look:{skin:3,hairStyle:1,hair:4,beard:2,eyes:4,tunic:4,cape:5,build:1,scar:0},eq:{}},
   {id:'shop',short:'Élise',name:'Élise la Marchande',role:'Potions, objets du jour et rachat.',tx:4.5,ty:16.8,look:{skin:0,hairStyle:1,hair:2,beard:0,eyes:1,tunic:2,cape:4,build:0,scar:0},eq:{}},
   {id:'gamble',short:'Arthur',name:'Arthur le Parieur',role:'Des objets mystère, parfois légendaires.',tx:22.5,ty:16.8,look:{skin:1,hairStyle:3,hair:0,beard:3,eyes:0,tunic:6,cape:1,build:1,scar:1},eq:{}},
+  {id:'lolita',short:'Lolita',name:'Lolita, la maman de Pavel',role:'Potions de soin et potions spéciales, préparées dans son chaudron.',tx:17.6,ty:6.7,look:{skin:0,hairStyle:5,hair:1,beard:0,eyes:1,tunic:2,cape:3,build:0,scar:0,fem:1},eq:{}},
   {id:'luna',short:'Luna',name:'Luna, la marraine de Pavel',role:'Grimoires, bijoux et anneaux enchantés, renouvelés après chaque expédition.',tx:20.5,ty:10.2,look:{skin:0,hairStyle:5,hair:1,beard:0,eyes:1,tunic:4,cape:5,build:0,scar:0,fem:1},eq:{}},
   {id:'dye',short:'Pigne',name:'Pigne, maître des teintures',role:"Change la couleur de ton équipement.",tx:7.5,ty:10,look:{skin:4,hairStyle:0,hair:6,beard:0,eyes:3,tunic:7,cape:6,build:0,scar:0},eq:{}}
 ];
@@ -1388,9 +1389,27 @@ function drawLunaStall(c,n,t){const x=n.x,y=n.y-26;
   gl(x-9,y-9,'#3fc8ff');gl(x+9,y-9,'#7ed321');gl(x,y-11,'#ff5a8a');
   c.strokeStyle='#d9b24a';c.lineWidth=1;c.beginPath();c.arc(x-1,y-5,3,0,TAU);c.stroke();c.beginPath();c.arc(x+5,y-5,2.6,0,TAU);c.stroke();
   for(let i=0;i<3;i++){const a=t*1.6+i*2.1,sx=x+Math.cos(a)*30,sy=y-22+Math.sin(a*1.3)*6;c.fillStyle=`rgba(255,230,140,${.5+Math.sin(t*5+i)*.4})`;circ(c,sx,sy,1);}}
+// ================= Lolita, la maman de Pavel : potions, avec son dragonnet et son chaudron
+const lolSpotCost=()=>400+60*S.lvl;
+function refreshLolita(){if(S.lolAt!==S.dl||!S.lolSpot){S.lolSpot={k:rollSpot(),sold:false};S.lolAt=S.dl;save();}}
+function drawLolitaExtras(c,n,t){const x=n.x,y=n.y;
+  // chaudron à gauche
+  const cx0=x-28,cy0=y+2;if(SHADOWS){c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(cx0,cy0+3,13,4,0,0,TAU);c.fill();}
+  const fl=Math.sin(t*14)*1.2;c.fillStyle='rgba(255,140,40,.9)';for(const o of [-5,0,5]){c.beginPath();c.moveTo(cx0+o-2.5,cy0+2);c.quadraticCurveTo(cx0+o,cy0-6+fl*(o?1:-1),cx0+o+2.5,cy0+2);c.fill();}
+  c.fillStyle='#ffd25a';c.beginPath();c.moveTo(cx0-1.5,cy0+2);c.quadraticCurveTo(cx0,cy0-3-fl,cx0+1.5,cy0+2);c.fill();
+  c.fillStyle=lg(c,cx0-11,0,cx0+11,0,['#4a4a52','#2a2a30','#141418']);c.beginPath();c.ellipse(cx0,cy0-8,11,9,0,0,TAU);c.fill();
+  c.fillStyle='#3a3a42';c.beginPath();c.ellipse(cx0,cy0-15,11.5,3.4,0,0,TAU);c.fill();
+  const gl=c.createRadialGradient(cx0,cy0-15,1,cx0,cy0-15,10);gl.addColorStop(0,'#c8ff8a');gl.addColorStop(1,'#4fae2a');c.fillStyle=gl;c.beginPath();c.ellipse(cx0,cy0-15,9.5,2.6,0,0,TAU);c.fill();
+  for(let i=0;i<4;i++){const k=((t*.8+i*.27)%1),bx=cx0-6+((i*37)%12),by=cy0-16-k*22;c.fillStyle=`rgba(190,255,140,${.75*(1-k)})`;circ(c,bx+Math.sin(t*3+i)*2,by,1.2+k*1.6);}
+  if(SHADOWS){const a=c.createRadialGradient(cx0,cy0-16,1,cx0,cy0-16,22);a.addColorStop(0,'rgba(170,255,110,.25)');a.addColorStop(1,'rgba(170,255,110,0)');c.fillStyle=a;circ(c,cx0,cy0-16,22);}
+  // petites fioles posées au sol
+  const vial=(vx,vy,col)=>{c.fillStyle='#e8eef5';rr(c,vx-2.2,vy-7,4.4,7,1.6);c.fillStyle=col;rr(c,vx-2,vy-4,4,4,1.4);c.fillStyle='#8a5a35';c.fillRect(vx-1,vy-8.6,2,1.8);};
+  vial(cx0-15,cy0+3,'#e8343a');vial(cx0+14,cy0+4,'#3fc8ff');
+  // dragonnet qui vole à sa droite
+  const by=y-6+Math.sin(t*3.2)*3;drawPet(c,{type:'dragonnet',stage:1,t:t*1.4,face:-1,mv:true,x:x+27,y:by,hp:1,max:1});}
 function refreshStock(){if(S.stockAt!==S.dl||!Array.isArray(S.stock)){S.stock=[];for(let i=0;i<4;i++)S.stock.push(genItem(S.lvl,Math.min(2,rollRar(0.25))));S.stockAt=S.dl;save();}}
 function itemRow(it,right,sub){const c=RAR[it.rarity].c;return `<div class="row"><img src="${iconURL(it)}" alt="" style="border-color:${c}"><div class="info"><b style="color:${c}">${iname(it)}</b><small>${sub||statSum(it)}</small></div>${right||''}</div>`;}
-function openShop(id){shopId=id;shopSel=null;lastGamble=null;paused=true;if(id==='shop')refreshStock();if(id==='luna')refreshLuna();renderShop();show('shop');}
+function openShop(id){shopId=id;shopSel=null;lastGamble=null;paused=true;if(id==='shop')refreshStock();if(id==='luna')refreshLuna();if(id==='lolita')refreshLolita();renderShop();show('shop');}
 function closeShop(){show(null);paused=false;save();}
 $('shopClose').onclick=closeShop;
 function reroll(it,k){ensureBase(it);const old=it.stats[k],kk=1+it.ilvl*0.3;it.bst[k]=0;const nk=pick(Object.keys(STATN));
@@ -1405,7 +1424,7 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
     h+=`<span class="ex-lab">Sacs (agrandissent l'inventaire)</span>`;
     if(nb<BAGS.length){const B=BAGS[nb];h+=`<div class="row"><div class="sw" style="width:38px;height:38px;border-radius:10px;background:radial-gradient(circle at 40% 35%,#c9915a,#5a3a22)"></div><div class="info"><b>${B[0]}</b><small>+10 places · sac actuel ${bagMax()} places → ${bagMax()+10}</small></div><button class="btn" data-act="bag" ${dis(S.gold<B[1])}>${fmtGold(B[1])} or</button></div>`;}
     else h+=`<p class="hint">Ton sac est au maximum : ${bagMax()} places.</p>`;
-    h+=`<span class="ex-lab">Potions</span><div class="row"><div class="potico"></div><div class="info"><b>Potion de soin</b><small>Rend la moitié de la vie · ${S.potions}/9 en réserve</small></div><button class="btn" data-act="potion" ${dis(S.potions>=9||S.gold<pp)}>${pp} or</button></div>`;
+    h+=`<p class="hint">Les potions, c'est maintenant chez Lolita, la maman de Pavel, près du portail.</p>`;
     h+=`<span class="ex-lab">Armes légendaires</span>`;
     for(const L of LEGSHOP)h+=itemRow(legPreview(L.id),`<button class="btn" data-act="leg" data-arg="${L.id}" ${dis(S.gold<L.price||S.bag.length>=bagMax())}>${fmtGold(L.price)} or</button>`,L.desc);
     h+=`<span class="ex-lab">Code secret</span><form class="row codeform" id="codeForm"><div class="info"><b>Mot de passe</b><small>Un code secret peut débloquer une récompense.</small></div><input id="codeIn" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE" maxlength="20" aria-label="Code secret"><button class="btn" type="submit">Valider</button></form>`;
@@ -1428,6 +1447,13 @@ function renderShop(){const n=NPCS.find(x=>x.id===shopId);if(!n)return;
     h+='<p class="hint">Choisis un emplacement : Arthur te vend un objet mystère d\'un niveau au-dessus du tien. Environ 1 chance sur 60 d\'obtenir un objet légendaire ou mieux.</p><div class="pills">';
     h+=ISLOTS.map(k=>`<button class="btn" data-act="gamble" data-arg="${k}" ${dis(S.gold<gc||S.bag.length>=bagMax())}>${SLOTN[k]} · ${gc} or</button>`).join('')+'</div>';
     if(lastGamble)h+='<span class="ex-lab">Ton dernier achat</span>'+itemRow(lastGamble);}
+  else if(shopId==='lolita'){const pp=potionCost(),sp=S.lolSpot,P2=SPOT[sp.k],sc=lolSpotCost();
+    h+='<p class="hint">« Mon chéri ! Fais attention à toi là-dehors. Tiens, prends des potions. » Le dragonnet de Lolita te regarde avec curiosité.</p>';
+    h+=`<span class="ex-lab">Potions de soin</span><div class="row"><div class="potico"></div><div class="info"><b>Potion de soin</b><small>Rend la moitié de la vie · ${S.potions}/9 en réserve</small></div><button class="btn" data-act="potion" ${dis(S.potions>=9||S.gold<pp)}>${pp} or</button></div>`;
+    h+=`<div class="row"><div class="potico"></div><div class="info"><b>Remplir la ceinture</b><small>Jusqu'à 9 potions · ${Math.max(0,9-S.potions)} à acheter</small></div><button class="btn" data-act="potfill" ${dis(S.potions>=9||S.gold<pp)}>${(9-S.potions)*pp} or</button></div>`;
+    h+=`<span class="ex-lab">Potion spéciale du jour (une seule, renouvelée après chaque expédition)</span>`;
+    if(sp.sold)h+='<p class="hint">« Je n\'en ai plus, mon chéri. Reviens après ta prochaine expédition. »</p>';
+    else h+=`<div class="row"><div class="sw" style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:${hexA(P2.c,.25)};border:2px solid ${P2.c}">${spotSvg(sp.k)}</div><div class="info"><b style="color:${P2.c}">${P2.n}</b><small>${P2.d} · 15 secondes</small></div><button class="btn" data-act="lolspot" ${dis(S.gold<sc||((S.spots||{})[sp.k]||0)>=5)}>${fmtGold(sc)} or</button></div>`;}
   else if(shopId==='luna'){
     h+='<p class="hint">« Mon petit Pavel ! Regarde ce que je t\'ai trouvé… » Luna renouvelle ses merveilles après chaque expédition.</p>';
     const cats=[['Grimoires',it=>isTome(it)],['Anneaux',it=>it.slot==='anneau'],['Colliers et bijoux',it=>it.slot==='collier'||it.slot==='bijou']];
@@ -2855,6 +2881,8 @@ function redeem(v){const c=String(v||'').trim().toUpperCase();S.codes=S.codes||[
 function shopAct(a,arg){
   if(a==='leg'){const L=LEGSHOP.find(x=>x.id===arg);if(L&&S.bag.length<bagMax()&&pay(L.price)){const it=makeElemSword(arg);S.bag.push(it);SND.item(3);toast(it.name+' rejoint ton sac !','#ff9b2e');}}
   else if(a==='potion'){if(S.potions<9&&pay(potionCost()))S.potions++;}
+  else if(a==='potfill'){const n=9-S.potions,c=n*potionCost();if(n>0){if(S.gold>=c){pay(c);S.potions=9;}else{const k=Math.floor(S.gold/potionCost());if(k>0&&pay(k*potionCost()))S.potions+=k;else toast("Pas assez d'or",'#ff6b6b');}}}
+  else if(a==='lolspot'){const sp=S.lolSpot;if(sp&&!sp.sold&&pay(lolSpotCost())){if(addSpot(sp.k)){sp.sold=true;toast('Lolita : « Bois-la au bon moment ! »','#9be36a');}else S.gold+=lolSpotCost();}}
   else if(a==='bag'){const nb=S.bags||0;if(nb<BAGS.length&&pay(BAGS[nb][1])){S.bags=nb+1;SND.item(2);toast(BAGS[nb][0]+' : ton sac passe à '+bagMax()+' places !','#ffd84a');}}
   else if(a==='buy'){const it=S.stock[+arg];if(it&&S.bag.length<bagMax()&&pay(itemValue(it)*4)){S.bag.push(it);S.stock.splice(+arg,1);SND.item(it.rarity);}}
   else if(a==='sellall'){sellAll(()=>renderShop());return;}
@@ -3079,7 +3107,7 @@ function render(){
       groundShadow(cx,P.x,P.y+6,P.horse?18:10,P.horse?4.5:3.6);if(P.rollT>0){cx.save();const ra=(1-P.rollT/.32)*TAU*((P.rdx||0)<0?-1:1);cx.translate(P.x,P.y-10);cx.rotate(ra);cx.translate(-P.x,-P.y+10);}potWrap(cx,P,S.pot&&S.pot.k,()=>sprite(cx,P.x,P.y,P.horse?{w:84,h:84,oy:68}:S.wolf?{w:104,h:104,oy:84}:{w:68,h:72,oy:54},c=>{if(P.horse)drawMounted(c,P);else if(S.wolf)drawWerewolf(c,P.x,P.y+6,0.95,S.look,P.dir,P.t,P.moving,P.swing);else drawHero(c,P.x,P.y+6,0.95,S.look,S.eq,P.dir,P.t,P.moving,P.swing);}));if(P.rollT>0)cx.restore();cx.globalAlpha=1;}
     else if(e===G.P2)drawMate(cx,e);
     else if(e===G.pet||e.isPet){const ps=[1,1.2,1.42][e.stage||0];groundShadow(cx,e.x,e.y+1,7*ps,2.5*ps);sprite(cx,e.x,e.y,{w:64,h:72,oy:56},c=>drawPet(c,e));petLabel(cx,e);}
-    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate','winportal','stairs'].includes(e.id))drawNpc(cx,e,G.time);else{if(e.id==='luna')drawLunaStall(cx,e,G.time);groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
+    else if(e.npc){if(['portal','rportal','door','exit','wgate','cave','worldgate','winportal','stairs'].includes(e.id))drawNpc(cx,e,G.time);else{if(e.id==='luna')drawLunaStall(cx,e,G.time);if(e.id==='lolita')drawLolitaExtras(cx,e,G.time);groundShadow(cx,e.x,e.y+6,10,3.6);sprite(cx,e.x,e.y,{w:68,h:74,oy:58},c=>drawNpc(c,e,G.time));drawNpcLabel(cx,e,G.time);}}
     else{groundShadow(cx,e.x,e.y+(e.type==='boss'?4:2),e.type==='boss'?20:e.r*1.1,e.type==='boss'?6:3);enemySprite(cx,e);
       if(e.elite){cx.font="800 8px 'Alegreya Sans',sans-serif";cx.textAlign='center';cx.lineWidth=2.5;cx.strokeStyle='#000';cx.strokeText(e.ename,e.x,e.y-42);cx.fillStyle='#ffb84a';cx.fillText(e.ename,e.x,e.y-42);}
       if(e.type!=='boss'&&(e.hp<e.max||e.elite)){cx.fillStyle='#000a';cx.fillRect(e.x-10,e.y-36,20,3);cx.fillStyle='#e8555a';cx.fillRect(e.x-10,e.y-36,20*e.hp/e.max,3);}
