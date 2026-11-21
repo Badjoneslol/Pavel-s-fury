@@ -22,6 +22,7 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 #stage{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;background:#07060a}
+#stage.pix{image-rendering:pixelated;image-rendering:crisp-edges}
 #stage.vivid{filter:saturate(1.4) contrast(1.06) brightness(1.05)}
 
 /* Écrans plein écran */
@@ -321,7 +322,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <button id="mapBtn" type="button" hidden>Carte</button>
       <button id="tpBtn" hidden>Portail ville</button>
       <button id="horseBtn" hidden>Cheval</button>
-      <div class="aud"><button id="musBtn" aria-pressed="true">Musique</button><button id="sfxBtn" aria-pressed="true">Sons</button></div>
+      <div class="aud"><button id="musBtn" aria-pressed="true">Musique</button><button id="sfxBtn" aria-pressed="true">Sons</button><button id="pixBtn" aria-pressed="true" title="Style graphique pixel art">Pixel</button></div>
       <span class="gold" id="gold">0 or</span>
       <span id="dlv">Donjon 1</span>
       <span class="key" id="keyInd" hidden>Clé du donjon</span><span class="key" id="mpBadge" hidden></span>
@@ -1335,9 +1336,11 @@ function musTickV1(){const c=AU.ctx;if(!c)return;
   if(AU.next<c.currentTime-0.5)AU.next=c.currentTime+0.05;
   const cfg=MUSIC[zone],boss=zone!=='menu'&&!!G&&G.enemies.some(e=>e.type==='boss'&&e.aggro),spb=60/(cfg.bpm*(boss?1.3:1))/4;
   while(AU.next<c.currentTime+0.2){playStep(cfg,AU.step,AU.next,spb,boss);AU.step++;AU.next+=spb;}}
-function auButtons(){$('musBtn').setAttribute('aria-pressed',String(AU.musicOn));$('sfxBtn').setAttribute('aria-pressed',String(AU.sfxOn));}
+let PIXON=(()=>{try{return localStorage.getItem('pf-pix')!=='0';}catch(_){return true;}})(),PIXCUR=null;
+function auButtons(){$('pixBtn').setAttribute('aria-pressed',String(PIXON));$('musBtn').setAttribute('aria-pressed',String(AU.musicOn));$('sfxBtn').setAttribute('aria-pressed',String(AU.sfxOn));}
 for(const ev of ['pointerdown','keydown'])window.addEventListener(ev,auInit,{capture:true});
 $('musBtn').onclick=()=>{AU.musicOn=!AU.musicOn;if(AU.mus)AU.mus.gain.value=AU.musicOn?0.34:0;auSave();auButtons();};
+$('pixBtn').onclick=()=>{PIXON=!PIXON;try{localStorage.setItem('pf-pix',PIXON?'1':'0');}catch(_){}$('pixBtn').setAttribute('aria-pressed',String(PIXON));resize();toast(PIXON?'Style pixel art':'Style lisse','#f6e2c4');};
 $('sfxBtn').onclick=()=>{AU.sfxOn=!AU.sfxOn;if(AU.sfx)AU.sfx.gain.value=AU.sfxOn?0.7:0;auSave();auButtons();};
 auButtons();
 
@@ -3133,7 +3136,11 @@ function update(dt){
 
 // ================= Rendu
 const cv=$('stage'),cx=cv.getContext('2d');let W=0,H=0,DPR=1,VS=1;
-function resize(){DPR=Math.min([1,1.5,2][QUAL],window.devicePixelRatio||1);W=cv.clientWidth;H=cv.clientHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);VS=Math.max(1.05,Math.min(W,H)/(9.5*TS));if(G&&typeof wantMS==='function'&&Math.abs(wantMS()-MS)>.2)reRenderMap();}
+// Style pixel art : l'image est calculée en basse résolution puis agrandie sans lissage (gros pixels nets, plus rapide sur tablette)
+function pixActive(){return PIXON&&!(G&&G.showMap);}
+function resize(){W=cv.clientWidth;H=cv.clientHeight;PIXCUR=pixActive();cv.classList.toggle('pix',PIXCUR);
+  if(PIXCUR){const f=Math.max(2,Math.min(4,Math.round(Math.min(W,H)/250)));DPR=1/f;}else DPR=Math.min([1,1.5,2][QUAL],window.devicePixelRatio||1);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);VS=Math.max(1.05,Math.min(W,H)/(9.5*TS))*(PIXCUR?1.15:1);if(G&&typeof wantMS==='function'&&Math.abs(wantMS()-MS)>.2)reRenderMap();if(G&&G.world&&typeof WORLD!=='undefined'&&WORLD&&WORLD.chunks)WORLD.chunks=new Map();}
 window.addEventListener('resize',resize);
 function drawBossV1(c,e){const fl=Math.sin(e.t*2)*3;c.fillStyle='rgba(0,0,0,.4)';ell(c,e.x,e.y+4,20,6);
   c.save();c.translate(e.x,e.y-8+fl);
@@ -3232,7 +3239,7 @@ function hud(){const P=G.P,st=stats();
 
 // ================= Boucle
 let last=0,uiT=0;
-function frame(ts){requestAnimationFrame(frame);pollPad();const dt=Math.min(0.05,last?(ts-last)/1000:0);last=ts;uiT+=dt;
+function frame(ts){requestAnimationFrame(frame);pollPad();if(pixActive()!==PIXCUR)resize();const dt=Math.min(0.05,last?(ts-last)/1000:0);last=ts;uiT+=dt;
   if(G&&G.client)clientUpdate(dt);else if(G&&(!paused||(NET.host&&NET.P2)))update(dt);
   if(!$('stage').hidden){render();if(G&&G.showMap){cx.setTransform(DPR,0,0,DPR,0,0);drawBigMap();}}
   if(G&&!$('hud').hidden){G.hudT=(G.hudT||0)-dt;if(G.hudT<=0){G.hudT=QUAL>=2?0:.07;hud();townHud();drawMini();}}perfTick(dt);
