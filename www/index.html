@@ -322,7 +322,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       <button id="mapBtn" type="button" hidden>Carte</button>
       <button id="tpBtn" hidden>Portail ville</button>
       <button id="horseBtn" hidden>Cheval</button>
-      <div class="aud"><button id="musBtn" aria-pressed="true">Musique</button><button id="sfxBtn" aria-pressed="true">Sons</button><button id="pixBtn" aria-pressed="true" title="Style graphique pixel art">Pixel</button></div>
+      <div class="aud"><button id="musBtn" aria-pressed="true">Musique</button><button id="sfxBtn" aria-pressed="true">Sons</button><button id="pixBtn" aria-pressed="false" title="Style graphique pixel art" hidden>Pixel</button></div>
       <span class="gold" id="gold">0 or</span>
       <span id="dlv">Donjon 1</span>
       <span class="key" id="keyInd" hidden>Clé du donjon</span><span class="key" id="mpBadge" hidden></span>
@@ -1336,7 +1336,7 @@ function musTickV1(){const c=AU.ctx;if(!c)return;
   if(AU.next<c.currentTime-0.5)AU.next=c.currentTime+0.05;
   const cfg=MUSIC[zone],boss=zone!=='menu'&&!!G&&G.enemies.some(e=>e.type==='boss'&&e.aggro),spb=60/(cfg.bpm*(boss?1.3:1))/4;
   while(AU.next<c.currentTime+0.2){playStep(cfg,AU.step,AU.next,spb,boss);AU.step++;AU.next+=spb;}}
-let PIXON=(()=>{try{return localStorage.getItem('pf-pix')!=='0';}catch(_){return true;}})(),PIXCUR=null;
+let PIXON=false,PIXCUR=null;
 function auButtons(){$('pixBtn').setAttribute('aria-pressed',String(PIXON));$('musBtn').setAttribute('aria-pressed',String(AU.musicOn));$('sfxBtn').setAttribute('aria-pressed',String(AU.sfxOn));}
 for(const ev of ['pointerdown','keydown'])window.addEventListener(ev,auInit,{capture:true});
 $('musBtn').onclick=()=>{AU.musicOn=!AU.musicOn;if(AU.mus)AU.mus.gain.value=AU.musicOn?0.34:0;auSave();auButtons();};
